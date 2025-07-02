@@ -2,13 +2,18 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
+	"github.com/conductorone/baton-sdk/pkg/types/entitlement"
+	"github.com/conductorone/baton-sdk/pkg/types/grant"
 	resourceSdk "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-sentry/pkg/client"
 )
+
+const organizationMembership = "member"
 
 type organizationBuilder struct {
 	client *client.Client
@@ -35,8 +40,13 @@ func newOrgResource(org client.Organization) (*v2.Resource, error) {
 }
 
 func (o *organizationBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+	cursor := ""
+	if pToken != nil {
+		cursor = pToken.Token
+	}
+
 	var annotations annotations.Annotations
-	orgs, ratelimitDescription, err := o.client.ListOrganizations(ctx)
+	orgs, res, ratelimitDescription, err := o.client.ListOrganizations(ctx, cursor)
 	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 	if err != nil {
 		return nil, "", nil, err
@@ -49,18 +59,55 @@ func (o *organizationBuilder) List(ctx context.Context, parentResourceID *v2.Res
 			return nil, "", nil, err
 		}
 		ret = append(ret, resource)
-
 	}
 
-	return ret, "", annotations, nil
+	nextCursor := ""
+	if client.HasNextPage(res) {
+		nextCursor = client.NextCursor(res)
+	}
+
+	return ret, nextCursor, annotations, nil
 }
 
 func (o *organizationBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+	return []*v2.Entitlement{
+		entitlement.NewAssignmentEntitlement(
+			resource,
+			organizationMembership,
+			entitlement.WithDescription(fmt.Sprintf("Member of %s organization", resource.DisplayName)),
+			entitlement.WithDisplayName(fmt.Sprintf("Member of %s organization", resource.DisplayName)),
+		),
+	}, "", nil, nil
 }
 
 func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	return nil, "", nil, nil
+	cursor := ""
+	if pToken != nil {
+		cursor = pToken.Token
+	}
+	var annotations annotations.Annotations
+	members, res, ratelimitDescription, err := o.client.ListOrganizationMembers(ctx, resource.Id.Resource, cursor)
+	annotations = *annotations.WithRateLimiting(ratelimitDescription)
+	if err != nil {
+		return nil, "", nil, err
+	}
+
+	ret := make([]*v2.Grant, 0, len(members))
+	for _, member := range members {
+		resourceId, err := resourceSdk.NewResourceID(userResourceType, member.ID)
+		if err != nil {
+			return nil, "", nil, fmt.Errorf("failed to create resource ID for user %s: %w", member.ID, err)
+		}
+
+		ret = append(ret, grant.NewGrant(resource, organizationMembership, resourceId))
+	}
+
+	nextCursor := ""
+	if client.HasNextPage(res) {
+		nextCursor = client.NextCursor(res)
+	}
+
+	return ret, nextCursor, annotations, nil
 }
 
 func newOrganizationBuilder(client *client.Client) *organizationBuilder {

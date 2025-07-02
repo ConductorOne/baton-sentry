@@ -9,10 +9,16 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
 
-func (c *Client) ListOrganizations(ctx context.Context) ([]Organization, *v2.RateLimitDescription, error) {
+func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organization, *http.Response, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, OrganizationsUrl, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
+	}
+
+	if cursor != "" {
+		q := req.URL.Query()
+		q.Set("cursor", cursor)
+		req.URL.RawQuery = q.Encode()
 	}
 
 	var target []Organization
@@ -24,23 +30,23 @@ func (c *Client) ListOrganizations(ctx context.Context) ([]Organization, *v2.Rat
 
 	if err != nil {
 		logBody(ctx, res.Body)
-		return nil, nil, fmt.Errorf("failed to list organizations: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to list organizations: %w", err)
 	}
 
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		logBody(ctx, res.Body)
-		return nil, nil, fmt.Errorf("failed to list organizations: %s", res.Status)
+		return nil, nil, nil, fmt.Errorf("failed to list organizations: %s", res.Status)
 	}
 
-	return target, &ratelimitData, nil
+	return target, res, &ratelimitData, nil
 }
 
 // https://docs.sentry.io/api/guides/teams-tutorial/#list-an-organizations-teams-1
-func (c *Client) ListOrganizationMembers(ctx context.Context, orgID string) ([]OrganizationMember, *v2.RateLimitDescription, error) {
+func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor string) ([]OrganizationMember, *http.Response, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationMembersUrl, orgID), nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	var target []OrganizationMember
@@ -52,14 +58,14 @@ func (c *Client) ListOrganizationMembers(ctx context.Context, orgID string) ([]O
 
 	if err != nil {
 		logBody(ctx, res.Body)
-		return nil, nil, fmt.Errorf("failed to list organization members: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to list organization members: %w", err)
 	}
 
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		logBody(ctx, res.Body)
-		return nil, nil, fmt.Errorf("failed to list organization members: %s", res.Status)
+		return nil, nil, nil, fmt.Errorf("failed to list organization members: %s", res.Status)
 	}
 
-	return target, &ratelimitData, nil
+	return target, res, &ratelimitData, nil
 }

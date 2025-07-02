@@ -5,7 +5,7 @@ import (
 )
 
 type Organization struct {
-	Avatar                     OrganizationAvatar `json:"avatar"`
+	Avatar                     Avatar             `json:"avatar"`
 	DateCreated                time.Time          `json:"dateCreated"`
 	Features                   []string           `json:"features"`
 	HasAuthProvider            bool               `json:"hasAuthProvider"`
@@ -21,7 +21,7 @@ type Organization struct {
 	Status                     OrganizationStatus `json:"status"`
 }
 
-type OrganizationAvatar struct {
+type Avatar struct {
 	AvatarType string  `json:"avatarType"`
 	AvatarUUID *string `json:"avatarUuid"`
 }
@@ -51,35 +51,30 @@ type OrganizationMember struct {
 }
 
 type User struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Username        string                 `json:"username"`
-	Email           string                 `json:"email"`
-	AvatarURL       string                 `json:"avatarUrl"`
-	IsActive        bool                   `json:"isActive"`
-	HasPasswordAuth bool                   `json:"hasPasswordAuth"`
-	IsManaged       bool                   `json:"isManaged"`
-	DateJoined      time.Time              `json:"dateJoined"`
-	LastLogin       *time.Time             `json:"lastLogin"`
-	Has2FA          bool                   `json:"has2fa"`
-	LastActive      *time.Time             `json:"lastActive"`
-	IsSuperuser     bool                   `json:"isSuperuser"`
-	IsStaff         bool                   `json:"isStaff"`
-	Experiments     map[string]interface{} `json:"experiments"`
-	Emails          []UserEmail            `json:"emails"`
-	Avatar          UserAvatar             `json:"avatar"`
-	CanReset2FA     bool                   `json:"canReset2fa"`
+	ID              string         `json:"id"`
+	Name            string         `json:"name"`
+	Username        string         `json:"username"`
+	Email           string         `json:"email"`
+	AvatarURL       string         `json:"avatarUrl"`
+	IsActive        bool           `json:"isActive"`
+	HasPasswordAuth bool           `json:"hasPasswordAuth"`
+	IsManaged       bool           `json:"isManaged"`
+	DateJoined      time.Time      `json:"dateJoined"`
+	LastLogin       *time.Time     `json:"lastLogin"`
+	Has2FA          bool           `json:"has2fa"`
+	LastActive      *time.Time     `json:"lastActive"`
+	IsSuperuser     bool           `json:"isSuperuser"`
+	IsStaff         bool           `json:"isStaff"`
+	Experiments     map[string]any `json:"experiments"`
+	Emails          []UserEmail    `json:"emails"`
+	Avatar          Avatar         `json:"avatar"`
+	CanReset2FA     bool           `json:"canReset2fa"`
 }
 
 type UserEmail struct {
 	ID         string `json:"id"`
 	Email      string `json:"email"`
 	IsVerified bool   `json:"is_verified"`
-}
-
-type UserAvatar struct {
-	AvatarType string  `json:"avatarType"`
-	AvatarUUID *string `json:"avatarUuid"`
 }
 
 type MemberFlags struct {
@@ -89,4 +84,62 @@ type MemberFlags struct {
 	SSOInvalid            bool `json:"sso:invalid"`
 	MemberLimitRestricted bool `json:"member-limit:restricted"`
 	PartnershipRestricted bool `json:"partnership:restricted"`
+}
+
+type Team struct {
+	ID          string    `json:"id"`
+	Slug        string    `json:"slug"`
+	Name        string    `json:"name"`
+	DateCreated time.Time `json:"dateCreated"`
+	IsMember    bool      `json:"isMember"`
+	TeamRole    *string   `json:"teamRole"`
+	Flags       TeamFlags `json:"flags"`
+	Access      []string  `json:"access"`
+	HasAccess   bool      `json:"hasAccess"`
+	IsPending   bool      `json:"isPending"`
+	MemberCount int       `json:"memberCount"`
+	Avatar      Avatar    `json:"avatar"`
+	Projects    []Project `json:"projects,omitempty"` // Optional - some teams may not have projects
+}
+
+type Project struct {
+	ID                         string     `json:"id"`
+	Slug                       string     `json:"slug"`
+	Name                       string     `json:"name"`
+	Platform                   *string    `json:"platform"`
+	DateCreated                time.Time  `json:"dateCreated"`
+	IsBookmarked               bool       `json:"isBookmarked"`
+	IsMember                   bool       `json:"isMember"`
+	Features                   []string   `json:"features"`
+	FirstEvent                 *time.Time `json:"firstEvent"`
+	FirstTransactionEvent      bool       `json:"firstTransactionEvent"`
+	Access                     []string   `json:"access"`
+	HasAccess                  bool       `json:"hasAccess"`
+	HasMinifiedStackTrace      bool       `json:"hasMinifiedStackTrace"`
+	HasMonitors                bool       `json:"hasMonitors"`
+	HasProfiles                bool       `json:"hasProfiles"`
+	HasReplays                 bool       `json:"hasReplays"`
+	HasFlags                   bool       `json:"hasFlags"`
+	HasFeedbacks               bool       `json:"hasFeedbacks"`
+	HasNewFeedbacks            bool       `json:"hasNewFeedbacks"`
+	HasSessions                bool       `json:"hasSessions"`
+	HasInsightsHttp            bool       `json:"hasInsightsHttp"`
+	HasInsightsDb              bool       `json:"hasInsightsDb"`
+	HasInsightsAssets          bool       `json:"hasInsightsAssets"`
+	HasInsightsAppStart        bool       `json:"hasInsightsAppStart"`
+	HasInsightsScreenLoad      bool       `json:"hasInsightsScreenLoad"`
+	HasInsightsVitals          bool       `json:"hasInsightsVitals"`
+	HasInsightsCaches          bool       `json:"hasInsightsCaches"`
+	HasInsightsQueues          bool       `json:"hasInsightsQueues"`
+	HasInsightsLlmMonitoring   bool       `json:"hasInsightsLlmMonitoring"`
+	HasInsightsAgentMonitoring bool       `json:"hasInsightsAgentMonitoring"`
+	IsInternal                 bool       `json:"isInternal"`
+	IsPublic                   bool       `json:"isPublic"`
+	Avatar                     Avatar     `json:"avatar"`
+	Color                      string     `json:"color"`
+	Status                     string     `json:"status"`
+}
+
+type TeamFlags struct {
+	IDPProvisioned bool `json:"idp:provisioned"`
 }

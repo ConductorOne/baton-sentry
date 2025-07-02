@@ -18,7 +18,7 @@ func (o *userBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 	return userResourceType
 }
 
-func newUserResource(member client.OrganizationMember) (*v2.Resource, error) {
+func newUserResource(member client.OrganizationMember, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
 		"expired":       member.Expired,
 		"invite_status": member.InviteStatus,
@@ -32,6 +32,7 @@ func newUserResource(member client.OrganizationMember) (*v2.Resource, error) {
 			resourceSdk.WithUserProfile(profile),
 			resourceSdk.WithCreatedAt(member.DateCreated),
 		},
+		resourceSdk.WithParentResourceID(parentResourceID),
 	)
 
 }
@@ -43,8 +44,13 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, nil
 	}
 
+	cursor := ""
+	if pToken != nil {
+		cursor = pToken.Token
+	}
+
 	var annotations annotations.Annotations
-	members, ratelimitDescription, err := o.client.ListOrganizationMembers(ctx, parentResourceID.Resource)
+	members, res, ratelimitDescription, err := o.client.ListOrganizationMembers(ctx, parentResourceID.Resource, cursor)
 	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 	if err != nil {
 		return nil, "", nil, err
@@ -52,14 +58,19 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 
 	ret := make([]*v2.Resource, 0, len(members))
 	for _, member := range members {
-		resource, err := newUserResource(member)
+		resource, err := newUserResource(member, parentResourceID)
 		if err != nil {
 			return nil, "", nil, err
 		}
 		ret = append(ret, resource)
 	}
 
-	return ret, "", annotations, nil
+	nextCursor := ""
+	if client.HasNextPage(res) {
+		nextCursor = client.NextCursor(res)
+	}
+
+	return ret, nextCursor, annotations, nil
 }
 
 // Entitlements always returns an empty slice for users.

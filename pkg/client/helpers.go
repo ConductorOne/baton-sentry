@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"io"
+	"net/http"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
+	"github.com/peterhellberg/link"
 	"go.uber.org/zap"
 )
 
@@ -17,4 +19,25 @@ func logBody(ctx context.Context, bodyCloser io.ReadCloser) {
 		return
 	}
 	l.Info("response body: ", zap.String("body", string(body[:n])))
+}
+
+// https://docs.sentry.io/api/pagination/
+func HasNextPage(res *http.Response) bool {
+	for _, l := range link.ParseResponse(res) {
+		if v, ok := l.Extra["results"]; ok && v == "true" {
+			return true
+		}
+	}
+	return false
+}
+
+func NextCursor(res *http.Response) string {
+	for _, l := range link.ParseResponse(res) {
+		if l.Rel == "next" {
+			if v, ok := l.Extra["cursor"]; ok {
+				return v
+			}
+		}
+	}
+	return ""
 }
