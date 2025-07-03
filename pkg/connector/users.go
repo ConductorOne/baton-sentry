@@ -49,12 +49,12 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		cursor = pToken.Token
 	}
 
-	var annotations annotations.Annotations
 	members, res, ratelimitDescription, err := o.client.ListOrganizationMembers(ctx, parentResourceID.Resource, cursor)
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 	if err != nil {
 		return nil, "", nil, err
 	}
+	var annotations annotations.Annotations
+	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 
 	ret := make([]*v2.Resource, 0, len(members))
 	for _, member := range members {

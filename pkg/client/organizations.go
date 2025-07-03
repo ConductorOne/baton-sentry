@@ -9,6 +9,8 @@ import (
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
 
+// docs: https://docs.sentry.io/api/organizations/
+
 func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organization, *http.Response, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, OrganizationsUrl, nil)
 	if err != nil {

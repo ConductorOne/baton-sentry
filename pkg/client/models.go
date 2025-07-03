@@ -143,3 +143,54 @@ type Project struct {
 type TeamFlags struct {
 	IDPProvisioned bool `json:"idp:provisioned"`
 }
+type TeamMember struct {
+	ID           string          `json:"id"`
+	Email        string          `json:"email"`
+	Name         string          `json:"name"`
+	User         *TeamMemberUser `json:"user,omitempty"` // Optional - only present for active members
+	OrgRole      string          `json:"orgRole"`
+	Pending      bool            `json:"pending"`
+	Expired      bool            `json:"expired"`
+	Flags        TeamMemberFlags `json:"flags"`
+	DateCreated  time.Time       `json:"dateCreated"`
+	InviteStatus string          `json:"inviteStatus"`
+	InviterName  string          `json:"inviterName"`
+	TeamRole     string          `json:"teamRole"`
+	TeamSlug     string          `json:"teamSlug"`
+}
+
+type TeamMemberUser struct {
+	ID              string                 `json:"id"`
+	Name            string                 `json:"name"`
+	Username        string                 `json:"username"`
+	Email           string                 `json:"email"`
+	AvatarURL       string                 `json:"avatarUrl"`
+	IsActive        bool                   `json:"isActive"`
+	HasPasswordAuth bool                   `json:"hasPasswordAuth"`
+	IsManaged       bool                   `json:"isManaged"`
+	DateJoined      time.Time              `json:"dateJoined"`
+	LastLogin       *time.Time             `json:"lastLogin"`
+	Has2FA          bool                   `json:"has2fa"`
+	LastActive      *time.Time             `json:"lastActive"`
+	IsSuperuser     bool                   `json:"isSuperuser"`
+	IsStaff         bool                   `json:"isStaff"`
+	Experiments     map[string]interface{} `json:"experiments"`
+	Emails          []TeamMemberEmail      `json:"emails"`
+	Avatar          Avatar                 `json:"avatar"`
+	CanReset2FA     bool                   `json:"canReset2fa"`
+}
+
+type TeamMemberEmail struct {
+	ID         string `json:"id"`
+	Email      string `json:"email"`
+	IsVerified bool   `json:"is_verified"`
+}
+
+type TeamMemberFlags struct {
+	IDPProvisioned        bool `json:"idp:provisioned"`
+	IDPRoleRestricted     bool `json:"idp:role-restricted"`
+	SSOLinked             bool `json:"sso:linked"`
+	SSOInvalid            bool `json:"sso:invalid"`
+	MemberLimitRestricted bool `json:"member-limit:restricted"`
+	PartnershipRestricted bool `json:"partnership:restricted"`
+}
