@@ -22,7 +22,9 @@ func newUserResource(member client.OrganizationMember, parentResourceID *v2.Reso
 	profile := map[string]interface{}{
 		"expired":       member.Expired,
 		"invite_status": member.InviteStatus,
+		"org_id":        parentResourceID.Resource,
 	}
+
 	return resourceSdk.NewUserResource(
 		member.Name,
 		userResourceType,

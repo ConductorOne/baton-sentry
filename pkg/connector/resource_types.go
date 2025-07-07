@@ -22,3 +22,9 @@ var teamResourceType = &v2.ResourceType{
 	DisplayName: "Team",
 	Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_GROUP},
 }
+
+var projectResourceType = &v2.ResourceType{
+	Id:          "project",
+	DisplayName: "Project",
+	Traits:      []v2.ResourceType_Trait{v2.ResourceType_TRAIT_GROUP},
+}

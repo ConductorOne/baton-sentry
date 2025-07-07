@@ -71,3 +71,28 @@ func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor stri
 
 	return target, res, &ratelimitData, nil
 }
+
+func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID string) (*DetailedMember, *http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationOneMemberUrl, orgID, memberID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var target DetailedMember
+	res, err := c.Do(req,
+		uhttp.WithJSONResponse(&target),
+	)
+
+	if err != nil {
+		logBody(ctx, res.Body)
+		return nil, res, fmt.Errorf("failed to get detailed organization member: %w", err)
+	}
+
+	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		logBody(ctx, res.Body)
+		return nil, res, fmt.Errorf("failed to get detailed organization member: %s", res.Status)
+	}
+
+	return &target, res, nil
+}

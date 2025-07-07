@@ -31,6 +31,7 @@ func HasNextPage(res *http.Response) bool {
 	return false
 }
 
+// https://docs.sentry.io/api/pagination/
 func NextCursor(res *http.Response) string {
 	for _, l := range link.ParseResponse(res) {
 		if l.Rel == "next" {

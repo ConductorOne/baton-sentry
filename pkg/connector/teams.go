@@ -25,10 +25,11 @@ func (o *teamBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 func newTeamResource(team client.Team, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
-		// "status": org.Status.Name,
+		"org_id": parentResourceID.Resource,
 	}
 	return resourceSdk.NewGroupResource(
-		team.Name, teamResourceType,
+		team.Name,
+		teamResourceType,
 		team.ID,
 		[]resourceSdk.GroupTraitOption{
 			resourceSdk.WithGroupProfile(profile),
@@ -79,6 +80,7 @@ func (o *teamBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 			teamMembership,
 			entitlement.WithDescription(fmt.Sprintf("Member of %s team", resource.DisplayName)),
 			entitlement.WithDisplayName(fmt.Sprintf("Member of %s team", resource.DisplayName)),
+			entitlement.WithGrantableTo(userResourceType),
 		),
 	}, "", nil, nil
 }
@@ -114,6 +116,70 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	}
 
 	return ret, nextCursor, annotations, nil
+}
+
+func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	orgId, err := getOrgId(principal)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization ID from principal: %w", err)
+	}
+	memberId := principal.Id.Resource
+	teamId := entitlement.Resource.Id.Resource
+	teamName := entitlement.Resource.DisplayName
+
+	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization member: %w", err)
+	}
+
+	for _, name := range member.Teams {
+		if name == teamName {
+			return annotations.New(&v2.GrantAlreadyExists{}), nil
+		}
+	}
+
+	_, err = o.client.AddOrgMemberToTeam(ctx, orgId, memberId, teamId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add organization member to team: %w", err)
+	}
+
+	return nil, nil
+}
+
+func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	memberId := grant.Principal.Id.Resource
+	orgId, err := getOrgId(grant.Principal)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization ID from principal: %w", err)
+	}
+
+	entitlement := grant.Entitlement
+	teamId := entitlement.Resource.Id.Resource
+	teamName := entitlement.Resource.DisplayName
+
+	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization member: %w", err)
+	}
+
+	exists := false
+	for _, name := range member.Teams {
+		if name == teamName {
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
+		return annotations.New(&v2.GrantAlreadyRevoked{}), nil
+	}
+
+	_, err = o.client.DeleteOrgMemberFromTeam(ctx, orgId, memberId, teamId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete organization member from team: %w", err)
+	}
+
+	return nil, nil
 }
 
 func newTeamBuilder(client *client.Client) *teamBuilder {

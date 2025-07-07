@@ -36,6 +36,7 @@ func newOrgResource(org client.Organization) (*v2.Resource, error) {
 		resourceSdk.WithAnnotation(
 			&v2.ChildResourceType{ResourceTypeId: userResourceType.Id},
 			&v2.ChildResourceType{ResourceTypeId: teamResourceType.Id},
+			&v2.ChildResourceType{ResourceTypeId: projectResourceType.Id},
 		),
 	)
 }

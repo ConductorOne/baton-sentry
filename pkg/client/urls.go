@@ -1,28 +1,34 @@
 package client
 
 const (
-	BaseUrl                = "https://sentry.io/api/0/"
-	OrganizationsUrl       = BaseUrl + "organizations/"
-	OrganizationMembersUrl = OrganizationsUrl + "%s/members/"
-	OrganizationTeamsUrl   = OrganizationsUrl + "%s/teams/"
+	BaseUrl                  = "https://sentry.io/api/0/"
+	OrganizationsUrl         = BaseUrl + "organizations/"
+	OrganizationMembersUrl   = OrganizationsUrl + "%s/members/"
+	OrganizationOneMemberUrl = OrganizationsUrl + "%s/members/%s/"
+	OrganizationTeamsUrl     = OrganizationsUrl + "%s/teams/"
+	OrganizationProjectsUrl  = OrganizationsUrl + "%s/projects/"
 
-	// grant organization https://docs.sentry.io/api/organizations/add-a-member-to-an-organization/
-	//revoke organization https://docs.sentry.io/api/organizations/delete-an-organization-member/
-
-	//	https://docs.sentry.io/api/teams/list-a-teams-members/
-	//	first %s is the org ID, second %s is the team slug
+	//https://docs.sentry.io/api/teams/list-a-teams-members/
+	//	teams/{organization_id_or_slug}/{team_id_or_slug}/members/
 	TeamMembersUrl = BaseUrl + "teams/%s/%s/members/"
 
-	// grant team https://docs.sentry.io/api/teams/add-an-organization-member-to-a-team/
-	// revoke team https://docs.sentry.io/api/teams/delete-an-organization-member-from-a-team/
+	//- grant team member https://docs.sentry.io/api/teams/add-an-organization-member-to-a-team/
+	//- revoke team member https://docs.sentry.io/api/teams/delete-an-organization-member-from-a-team/
+	//
+	//	organizations/{organization_id_or_slug}/members/{member_id}/teams/{team_id_or_slug}/
+	ProvisionTeamMemberUrl = OrganizationMembersUrl + "%s/teams/%s/"
 
-	// PROJECTS
-	// list projects https://docs.sentry.io/api/projects/list-your-projects/
+	//	projects/{organization_id_or_slug}/{project_id_or_slug}/
+	ProjectsUrl = BaseUrl + "projects/%s/%s/"
 
-	// list project members  https://docs.sentry.io/api/projects/list-a-projects-users/
-	// or also https://docs.sentry.io/api/projects/list-a-projects-organization-members/
+	//	projects/{organization_id_or_slug}/{project_id_or_slug}/
+	ProjectMembersUrl = ProjectsUrl + "members/"
 
-	// grant teams to projects https://docs.sentry.io/api/projects/add-a-team-to-a-project/
-	// revoke team from project https://docs.sentry.io/api/projects/delete-a-team-from-a-project/
+	// provision project members
+	//	projects/{organization_id_or_slug}/{project_id_or_slug}/teams/{team_id_or_slug}/
+	ProvisionProjectTeamUrl = ProjectsUrl + "teams/%s/"
 
+	// TODO:
+	// grant organization https://docs.sentry.io/api/organizations/add-a-member-to-an-organization/
+	//revoke organization https://docs.sentry.io/api/organizations/delete-an-organization-member/
 )
