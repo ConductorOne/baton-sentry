@@ -42,6 +42,39 @@ func (c *Client) ListProjects(ctx context.Context, orgID, cursor string) ([]Proj
 	return target, res, &ratelimitData, nil
 }
 
+func (c *Client) ListTeamProjects(ctx context.Context, orgID, teamID, cursor string) ([]Project, *http.Response, *v2.RateLimitDescription, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(TeamProjectsUrl, orgID, teamID), nil)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	if cursor != "" {
+		q := req.URL.Query()
+		q.Set("cursor", cursor)
+		req.URL.RawQuery = q.Encode()
+	}
+
+	var target []Project
+	var ratelimitData v2.RateLimitDescription
+	res, err := c.Do(req,
+		uhttp.WithJSONResponse(&target),
+		uhttp.WithRatelimitData(&ratelimitData),
+	)
+
+	if err != nil {
+		logBody(ctx, res.Body)
+		return nil, nil, nil, fmt.Errorf("failed to list projects: %w", err)
+	}
+
+	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		logBody(ctx, res.Body)
+		return nil, nil, nil, fmt.Errorf("failed to list projects: %s", res.Status)
+	}
+
+	return target, res, &ratelimitData, nil
+}
+
 // https://docs.sentry.io/api/projects/list-a-projects-organization-members/
 // Returns a list of active organization members that belong to any team assigned to the project.
 func (c *Client) ListProjectMembers(ctx context.Context, orgID, projectID, cursor string) ([]ProjectMember, *http.Response, *v2.RateLimitDescription, error) {
@@ -72,7 +105,7 @@ func (c *Client) ListProjectMembers(ctx context.Context, orgID, projectID, curso
 }
 
 func (c *Client) AddTeamToProject(ctx context.Context, orgID, projectID, teamID string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(ProjectMembersUrl, orgID, projectID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(ProvisionProjectTeamUrl, orgID, projectID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +127,7 @@ func (c *Client) AddTeamToProject(ctx context.Context, orgID, projectID, teamID 
 }
 
 func (c *Client) DeleteTeamFromProject(ctx context.Context, orgID, projectID, teamID string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(ProjectMembersUrl, orgID, projectID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(ProvisionProjectTeamUrl, orgID, projectID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}

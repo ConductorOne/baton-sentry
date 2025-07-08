@@ -59,6 +59,19 @@ func getOrgId(resource *v2.Resource) (string, error) {
 	return orgId, nil
 }
 
+func getOrgIdForTeam(resource *v2.Resource) (string, error) {
+	groupTrait, err := resourceSdk.GetGroupTrait(resource)
+	if err != nil {
+		return "", fmt.Errorf("baton-sentry: error getting traits: %w", err)
+	}
+	traits := groupTrait.GetProfile().AsMap()
+	orgId, ok := traits["org_id"].(string)
+	if !ok {
+		return "", fmt.Errorf("baton-sentry: org_id not found in resource profile")
+	}
+	return orgId, nil
+}
+
 // New returns a new instance of the connector.
 func New(ctx context.Context, apiToken string) (*Connector, error) {
 	client, err := client.New(ctx, apiToken)

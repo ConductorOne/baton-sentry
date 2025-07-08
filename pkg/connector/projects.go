@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -13,7 +14,7 @@ import (
 	"github.com/conductorone/baton-sentry/pkg/client"
 )
 
-const projectMembership = "member"
+const projectAssignment = "assigned"
 
 type projectBuilder struct {
 	client *client.Client
@@ -25,7 +26,8 @@ func (o *projectBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 func newProjectResource(project client.Project, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
-		"org_id": parentResourceID.Resource,
+		"org_id":  parentResourceID.Resource,
+		"team_id": project.ID,
 	}
 	return resourceSdk.NewGroupResource(
 		project.Name,
@@ -74,55 +76,58 @@ func (o *projectBuilder) List(ctx context.Context, parentResourceID *v2.Resource
 }
 
 func (o *projectBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
-	// TODO: add grantable to teams
-	// add grant expansion to include user memberships  in the grants function
 	return []*v2.Entitlement{
 		entitlement.NewAssignmentEntitlement(
 			resource,
-			projectMembership,
-			entitlement.WithDescription(fmt.Sprintf("Member of %s project", resource.DisplayName)),
-			entitlement.WithDisplayName(fmt.Sprintf("Member of %s project", resource.DisplayName)),
+			projectAssignment,
+			entitlement.WithDescription(fmt.Sprintf("Assignment of %s project", resource.DisplayName)),
+			entitlement.WithDisplayName(fmt.Sprintf("Assignment of %s project", resource.DisplayName)),
 			entitlement.WithGrantableTo(teamResourceType),
 		),
 	}, "", nil, nil
 }
 
 func (o *projectBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	cursor := ""
-	if pToken != nil {
-		cursor = pToken.Token
-	}
 
 	orgID := resource.ParentResourceId.Resource
-	projectID := resource.Id.Resource
-	members, res, ratelimitDescription, err := o.client.ListProjectMembers(ctx, orgID, projectID, cursor)
+	project, _, err := o.client.GetProject(ctx, resource.ParentResourceId.Resource, resource.Id.Resource)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", nil, fmt.Errorf("failed to get project: %w", err)
 	}
-	var annotations annotations.Annotations
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 
-	ret := make([]*v2.Grant, 0, len(members))
-	for _, member := range members {
-		resourceId, err := resourceSdk.NewResourceID(userResourceType, member.ID)
+	ret := []*v2.Grant{}
+	for _, team := range project.Teams {
+		teamID := fmt.Sprintf("%s/%s", orgID, team.ID)
+		resourceId, err := resourceSdk.NewResourceID(teamResourceType, teamID)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("failed to create resource ID for user %s: %w", member.ID, err)
+			return nil, "", nil, fmt.Errorf("failed to create resource ID for team %s: %w", resource.ParentResourceId.Resource, err)
 		}
 
-		ret = append(ret, grant.NewGrant(resource, projectMembership, resourceId))
+		ret = append(ret, grant.NewGrant(
+			resource,
+			projectAssignment,
+			resourceId,
+			grant.WithAnnotation(&v2.GrantExpandable{
+				EntitlementIds: []string{
+					fmt.Sprintf("team:%s:%s", teamID, teamMembership),
+				},
+				Shallow: true,
+			}),
+		))
 	}
 
-	nextCursor := ""
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
-	}
-
-	return ret, nextCursor, annotations, nil
+	return ret, "", nil, nil
 }
 
 func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
-	orgId := principal.ParentResourceId.Resource
-	teamId := principal.Id.Resource
+	if principal.Id.ResourceType != teamResourceType.Id {
+		return nil, fmt.Errorf("expected principal to be a team, got %s", principal.Id.ResourceType)
+	}
+
+	split := strings.Split(principal.Id.Resource, "/")
+
+	orgId := split[0]
+	teamId := split[1]
 	projectId := entitlement.Resource.Id.Resource
 
 	project, _, err := o.client.GetProject(ctx, orgId, projectId)
@@ -145,8 +150,13 @@ func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, enti
 }
 
 func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
-	orgId := grant.Principal.ParentResourceId.Resource
-	teamId := grant.Principal.Id.Resource
+	if grant.Principal.Id.ResourceType != teamResourceType.Id {
+		return nil, fmt.Errorf("expected principal to be a team, got %s", grant.Principal.Id.ResourceType)
+	}
+
+	split := strings.Split(grant.Principal.Id.Resource, "/")
+	orgId := split[0]
+	teamId := split[1]
 	projectId := grant.Entitlement.Resource.Id.Resource
 
 	project, _, err := o.client.GetProject(ctx, orgId, projectId)

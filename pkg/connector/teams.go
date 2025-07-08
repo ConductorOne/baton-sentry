@@ -3,6 +3,7 @@ package connector
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -30,7 +31,8 @@ func newTeamResource(team client.Team, parentResourceID *v2.ResourceId) (*v2.Res
 	return resourceSdk.NewGroupResource(
 		team.Name,
 		teamResourceType,
-		team.ID,
+		// <orgID>/<teamID>
+		fmt.Sprintf("%s/%s", parentResourceID.Resource, team.ID),
 		[]resourceSdk.GroupTraitOption{
 			resourceSdk.WithGroupProfile(profile),
 		},
@@ -92,7 +94,7 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	}
 
 	orgID := resource.ParentResourceId.Resource
-	teamID := resource.Id.Resource
+	teamID := strings.Split(resource.Id.Resource, "/")[1]
 	members, res, ratelimitDescription, err := o.client.ListTeamMembers(ctx, orgID, teamID, cursor)
 	if err != nil {
 		return nil, "", nil, err
@@ -119,12 +121,11 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 }
 
 func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
-	orgId, err := getOrgId(principal)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get organization ID from principal: %w", err)
-	}
+	split := strings.Split(entitlement.Resource.Id.Resource, "/")
+
+	orgId := split[0]
+	teamId := split[1]
 	memberId := principal.Id.Resource
-	teamId := entitlement.Resource.Id.Resource
 	teamName := entitlement.Resource.DisplayName
 
 	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
@@ -147,14 +148,13 @@ func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 }
 
 func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
-	memberId := grant.Principal.Id.Resource
-	orgId, err := getOrgId(grant.Principal)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get organization ID from principal: %w", err)
-	}
-
 	entitlement := grant.Entitlement
-	teamId := entitlement.Resource.Id.Resource
+	split := strings.Split(entitlement.Resource.Id.Resource, "/")
+
+	orgId := split[0]
+	teamId := split[1]
+
+	memberId := grant.Principal.Id.Resource
 	teamName := entitlement.Resource.DisplayName
 
 	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
