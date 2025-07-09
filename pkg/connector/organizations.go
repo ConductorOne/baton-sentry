@@ -49,7 +49,7 @@ func (o *organizationBuilder) List(ctx context.Context, parentResourceID *v2.Res
 
 	orgs, res, ratelimitDescription, err := o.client.ListOrganizations(ctx, cursor)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", nil, fmt.Errorf("baton-sentry: failed to list organizations: %w", err)
 	}
 	var annotations annotations.Annotations
 	annotations = *annotations.WithRateLimiting(ratelimitDescription)
@@ -58,7 +58,7 @@ func (o *organizationBuilder) List(ctx context.Context, parentResourceID *v2.Res
 	for _, org := range orgs {
 		resource, err := newOrgResource(org)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, "", nil, fmt.Errorf("baton-sentry: failed to create resource for organization %s: %w", org.ID, err)
 		}
 		ret = append(ret, resource)
 	}
@@ -98,7 +98,7 @@ func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource,
 	for _, member := range members {
 		resourceId, err := resourceSdk.NewResourceID(userResourceType, member.ID)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("failed to create resource ID for user %s: %w", member.ID, err)
+			return nil, "", nil, fmt.Errorf("baton-sentry: failed to create resource ID for user %s: %w", member.ID, err)
 		}
 
 		ret = append(ret, grant.NewGrant(resource, organizationMembership, resourceId))

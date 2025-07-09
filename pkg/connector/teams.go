@@ -106,7 +106,7 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	for _, member := range members {
 		resourceId, err := resourceSdk.NewResourceID(userResourceType, member.ID)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("failed to create resource ID for user %s: %w", member.ID, err)
+			return nil, "", nil, fmt.Errorf("baton-sentry: failed to create resource ID for user %s: %w", member.ID, err)
 		}
 
 		ret = append(ret, grant.NewGrant(resource, teamMembership, resourceId))
@@ -130,7 +130,7 @@ func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get organization member: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to get organization member: %w", err)
 	}
 
 	for _, name := range member.Teams {
@@ -141,7 +141,7 @@ func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 
 	_, err = o.client.AddOrgMemberToTeam(ctx, orgId, memberId, teamId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add organization member to team: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to add organization member to team: %w", err)
 	}
 
 	return nil, nil
@@ -159,7 +159,7 @@ func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 
 	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get organization member: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to get organization member: %w", err)
 	}
 
 	exists := false
@@ -176,7 +176,7 @@ func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 
 	_, err = o.client.DeleteOrgMemberFromTeam(ctx, orgId, memberId, teamId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to delete organization member from team: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to delete organization member from team: %w", err)
 	}
 
 	return nil, nil

@@ -26,8 +26,10 @@ func (o *projectBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 func newProjectResource(project client.Project, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
-		"org_id":  parentResourceID.Resource,
-		"team_id": project.ID,
+		"org_id":    parentResourceID.Resource,
+		"team_id":   project.ID,
+		"is_public": project.IsPublic,
+		"status":    project.Status,
 	}
 	return resourceSdk.NewGroupResource(
 		project.Name,
@@ -92,7 +94,7 @@ func (o *projectBuilder) Grants(ctx context.Context, resource *v2.Resource, pTok
 	orgID := resource.ParentResourceId.Resource
 	project, _, err := o.client.GetProject(ctx, resource.ParentResourceId.Resource, resource.Id.Resource)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("failed to get project: %w", err)
+		return nil, "", nil, fmt.Errorf("baton-sentry: failed to get project: %w", err)
 	}
 
 	ret := []*v2.Grant{}
@@ -121,7 +123,7 @@ func (o *projectBuilder) Grants(ctx context.Context, resource *v2.Resource, pTok
 
 func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
 	if principal.Id.ResourceType != teamResourceType.Id {
-		return nil, fmt.Errorf("expected principal to be a team, got %s", principal.Id.ResourceType)
+		return nil, fmt.Errorf("baton-sentry: expected principal to be a team, got %s", principal.Id.ResourceType)
 	}
 
 	split := strings.Split(principal.Id.Resource, "/")
@@ -132,7 +134,7 @@ func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, enti
 
 	project, _, err := o.client.GetProject(ctx, orgId, projectId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get project: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to get project: %w", err)
 	}
 
 	for _, team := range project.Teams {
@@ -143,7 +145,7 @@ func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, enti
 
 	_, err = o.client.AddTeamToProject(ctx, orgId, projectId, teamId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add team to project: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to add team to project: %w", err)
 	}
 
 	return nil, nil
@@ -151,7 +153,7 @@ func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, enti
 
 func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
 	if grant.Principal.Id.ResourceType != teamResourceType.Id {
-		return nil, fmt.Errorf("expected principal to be a team, got %s", grant.Principal.Id.ResourceType)
+		return nil, fmt.Errorf("baton-sentry: expected principal to be a team, got %s", grant.Principal.Id.ResourceType)
 	}
 
 	split := strings.Split(grant.Principal.Id.Resource, "/")
@@ -161,7 +163,7 @@ func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotatio
 
 	project, _, err := o.client.GetProject(ctx, orgId, projectId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get project: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to get project: %w", err)
 	}
 
 	exists := false
@@ -179,7 +181,7 @@ func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotatio
 
 	_, err = o.client.DeleteTeamFromProject(ctx, orgId, projectId, teamId)
 	if err != nil {
-		return nil, fmt.Errorf("failed to delete team from project: %w", err)
+		return nil, fmt.Errorf("baton-sentry: failed to delete team from project: %w", err)
 	}
 
 	return nil, nil
