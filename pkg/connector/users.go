@@ -2,9 +2,11 @@ package connector
 
 import (
 	"context"
+	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
+	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/pagination"
 	resourceSdk "github.com/conductorone/baton-sdk/pkg/types/resource"
 	"github.com/conductorone/baton-sentry/pkg/client"
@@ -83,6 +85,59 @@ func (o *userBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 // Grants always returns an empty slice for users since they don't have any entitlements.
 func (o *userBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	return nil, "", nil, nil
+}
+
+func (o *userBuilder) CreateAccountCapabilityDetails(ctx context.Context) (*v2.CredentialDetailsAccountProvisioning, annotations.Annotations, error) {
+	return &v2.CredentialDetailsAccountProvisioning{
+		SupportedCredentialOptions: []v2.CapabilityDetailCredentialOption{
+			v2.CapabilityDetailCredentialOption_CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD,
+		},
+		PreferredCredentialOption: v2.CapabilityDetailCredentialOption_CAPABILITY_DETAIL_CREDENTIAL_OPTION_NO_PASSWORD,
+	}, nil, nil
+}
+
+func (o *userBuilder) CreateAccount(ctx context.Context, accountInfo *v2.AccountInfo, credentialOptions *v2.CredentialOptions) (
+	connectorbuilder.CreateAccountResponse,
+	[]*v2.PlaintextData,
+	annotations.Annotations,
+	error,
+) {
+	pMap := accountInfo.Profile.AsMap()
+	email, ok := pMap["email"].(string)
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("baton-sentry: email not found in profile")
+	}
+
+	orgId, ok := pMap["orgID"].(string)
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("baton-sentry: orgID not found in profile")
+	}
+
+	orgRole, _ := pMap["orgRole"].(string)
+	err := o.client.AddMemberToOrganization(ctx, orgId, client.AddOrganizationMemberBody{
+		Email:   email,
+		OrgRole: orgRole,
+	})
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("baton-sentry: failed to create account: %w", err)
+	}
+
+	return &v2.CreateAccountResponse_ActionRequiredResult{}, nil, nil, nil
+}
+
+func (o *userBuilder) Delete(ctx context.Context, resourceId *v2.ResourceId) (annotations.Annotations, error) {
+	userID := resourceId.Resource
+	orgID, err := client.FindUserOrgID(ctx, o.client, userID)
+	if err != nil {
+		return nil, fmt.Errorf("baton-sentry: failed to find organization for user %s: %w", resourceId.Resource, err)
+	}
+
+	err = o.client.DeleteMemberFromOrganization(ctx, orgID, userID)
+	if err != nil {
+		return nil, fmt.Errorf("baton-sentry: failed to delete user %s from organization %s: %w", userID, orgID, err)
+	}
+
+	return nil, nil
 }
 
 func newUserBuilder(client *client.Client) *userBuilder {

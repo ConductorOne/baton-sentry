@@ -30,8 +30,4 @@ const (
 
 	// teams/{organization_id_or_slug}/{team_id_or_slug}/projects/
 	TeamProjectsUrl = BaseUrl + "teams/%s/%s/projects/"
-
-	// TODO:
-	// grant organization https://docs.sentry.io/api/organizations/add-a-member-to-an-organization/
-	//revoke organization https://docs.sentry.io/api/organizations/delete-an-organization-member/
 )

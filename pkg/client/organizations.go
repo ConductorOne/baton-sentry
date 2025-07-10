@@ -1,7 +1,9 @@
 package client
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -95,4 +97,54 @@ func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID stri
 	}
 
 	return &target, res, nil
+}
+
+func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, member AddOrganizationMemberBody) error {
+	v, err := json.Marshal(member)
+	if err != nil {
+		return fmt.Errorf("failed to marshal member: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(OrganizationMembersUrl, orgID), bytes.NewReader(v))
+	if err != nil {
+		return fmt.Errorf("failed to create request to add member to organization: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := c.Do(req)
+
+	if err != nil {
+		logBody(ctx, res.Body)
+		return fmt.Errorf("failed to add member to organization: %w", err)
+	}
+
+	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		logBody(ctx, res.Body)
+		return fmt.Errorf("failed to add member to organization: %s", res.Status)
+	}
+
+	return nil
+}
+
+func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(OrganizationOneMemberUrl, orgID, userID), nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request to delete member: %w", err)
+	}
+
+	res, err := c.Do(req)
+	if err != nil {
+		logBody(ctx, res.Body)
+		return fmt.Errorf("failed to add member to organization: %w", err)
+	}
+
+	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		logBody(ctx, res.Body)
+		return fmt.Errorf("failed to add member to organization: %s", res.Status)
+	}
+
+	return nil
 }

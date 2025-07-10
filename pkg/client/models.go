@@ -452,3 +452,11 @@ type HighlightPreset struct {
 	Tags    []string               `json:"tags"`
 	Context map[string]interface{} `json:"context"`
 }
+
+type AddOrganizationMemberBody struct {
+	Email string `json:"email"`
+	// Optional.
+	//  Possible values are:
+	//, "owner", "manager", "member", "billing"
+	OrgRole string `json:"orgRole,omitempty"`
+}
