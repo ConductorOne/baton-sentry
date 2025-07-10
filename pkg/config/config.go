@@ -10,6 +10,7 @@ var (
 		"api-token",
 		field.WithDisplayName("API Token"),
 		field.WithDescription("API Token for Sentry"),
+		field.WithIsSecret(true),
 	)
 
 	ConfigurationFields = []field.SchemaField{ApiToken}
