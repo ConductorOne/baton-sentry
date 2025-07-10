@@ -90,7 +90,6 @@ func (o *projectBuilder) Entitlements(_ context.Context, resource *v2.Resource, 
 }
 
 func (o *projectBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-
 	orgID := resource.ParentResourceId.Resource
 	project, _, err := o.client.GetProject(ctx, resource.ParentResourceId.Resource, resource.Id.Resource)
 	if err != nil {
@@ -172,7 +171,6 @@ func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotatio
 			exists = true
 			break
 		}
-
 	}
 
 	if !exists {

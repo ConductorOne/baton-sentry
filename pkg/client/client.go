@@ -20,5 +20,4 @@ func New(ctx context.Context, apiToken string) (*Client, error) {
 	return &Client{
 		BaseHttpClient: uhttp.NewBaseHttpClient(httpClient),
 	}, nil
-
 }

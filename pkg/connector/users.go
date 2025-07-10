@@ -38,7 +38,6 @@ func newUserResource(member client.OrganizationMember, parentResourceID *v2.Reso
 		},
 		resourceSdk.WithParentResourceID(parentResourceID),
 	)
-
 }
 
 // List returns all the users from the database as resource objects.

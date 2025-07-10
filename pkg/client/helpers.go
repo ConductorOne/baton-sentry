@@ -12,6 +12,7 @@ import (
 )
 
 func logBody(ctx context.Context, bodyCloser io.ReadCloser) {
+	defer bodyCloser.Close()
 	l := ctxzap.Extract(ctx)
 	body := make([]byte, 1024*1024)
 	n, err := bodyCloser.Read(body)
@@ -47,8 +48,9 @@ func NextCursor(res *http.Response) string {
 func FindUserOrgID(ctx context.Context, client *Client, userID string) (string, error) {
 	allOrgs := []Organization{}
 	cursor := ""
-	for true {
+	for {
 		organizations, res, _, err := client.ListOrganizations(ctx, cursor)
+		defer res.Body.Close()
 		if err != nil {
 			return "", fmt.Errorf("failed to list organizations: %w", err)
 		}
@@ -62,7 +64,8 @@ func FindUserOrgID(ctx context.Context, client *Client, userID string) (string, 
 
 	userOrgID := ""
 	for _, org := range allOrgs {
-		_, _, err := client.GetOrganizationMember(ctx, org.ID, userID)
+		_, res, err := client.GetOrganizationMember(ctx, org.ID, userID)
+		defer res.Body.Close()
 		if err != nil {
 			continue
 		}

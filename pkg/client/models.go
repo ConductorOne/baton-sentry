@@ -197,7 +197,7 @@ type TeamMemberFlags struct {
 
 type ProjectMember OrganizationMember
 
-// DetailedMember represents a comprehensive member with full role information
+// DetailedMember represents a comprehensive member with full role information.
 type DetailedMember struct {
 	ID           string              `json:"id"`
 	Email        string              `json:"email"`
@@ -457,6 +457,6 @@ type AddOrganizationMemberBody struct {
 	Email string `json:"email"`
 	// Optional.
 	//  Possible values are:
-	//, "owner", "manager", "member", "billing"
+	// "owner", "manager", "member", "billing"
 	OrgRole string `json:"orgRole,omitempty"`
 }

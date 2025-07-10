@@ -28,6 +28,6 @@ const (
 	//	projects/{organization_id_or_slug}/{project_id_or_slug}/teams/{team_id_or_slug}/
 	ProvisionProjectTeamUrl = ProjectsUrl + "teams/%s/"
 
-	// teams/{organization_id_or_slug}/{team_id_or_slug}/projects/
+	// teams/{organization_id_or_slug}/{team_id_or_slug}/projects/.
 	TeamProjectsUrl = BaseUrl + "teams/%s/%s/projects/"
 )
