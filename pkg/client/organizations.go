@@ -137,13 +137,13 @@ func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID
 	res, err := c.Do(req)
 	if err != nil {
 		logBody(ctx, res.Body)
-		return fmt.Errorf("failed to add member to organization: %w", err)
+		return fmt.Errorf("failed to delete member from organization: %w", err)
 	}
 
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		logBody(ctx, res.Body)
-		return fmt.Errorf("failed to add member to organization: %s", res.Status)
+		return fmt.Errorf("failed to delete member from organization: %s", res.Status)
 	}
 
 	return nil
