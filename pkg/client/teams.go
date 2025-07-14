@@ -31,7 +31,9 @@ func (c *Client) ListTeams(ctx context.Context, orgID, cursor string) ([]Team, *
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, nil, fmt.Errorf("failed to list teams: %w", err)
 	}
 
@@ -58,7 +60,9 @@ func (c *Client) ListTeamMembers(ctx context.Context, orgID, teamID, cursor stri
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, nil, fmt.Errorf("failed to list teams members: %w", err)
 	}
 
@@ -79,7 +83,9 @@ func (c *Client) AddOrgMemberToTeam(ctx context.Context, orgID, memberID, teamID
 
 	res, err := c.Do(req)
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, fmt.Errorf("failed to add organization member to team: %w", err)
 	}
 
@@ -100,7 +106,9 @@ func (c *Client) DeleteOrgMemberFromTeam(ctx context.Context, orgID, memberID, t
 
 	res, err := c.Do(req)
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, fmt.Errorf("failed to delete organization member from team: %w", err)
 	}
 

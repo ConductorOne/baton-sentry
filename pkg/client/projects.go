@@ -29,7 +29,9 @@ func (c *Client) ListProjects(ctx context.Context, orgID, cursor string) ([]Proj
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, nil, fmt.Errorf("failed to list projects: %w", err)
 	}
 
@@ -62,7 +64,9 @@ func (c *Client) ListTeamProjects(ctx context.Context, orgID, teamID, cursor str
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, nil, fmt.Errorf("failed to list projects: %w", err)
 	}
 
@@ -91,7 +95,9 @@ func (c *Client) ListProjectMembers(ctx context.Context, orgID, projectID, curso
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, nil, fmt.Errorf("failed to list project members: %w", err)
 	}
 
@@ -113,7 +119,9 @@ func (c *Client) AddTeamToProject(ctx context.Context, orgID, projectID, teamID 
 	res, err := c.Do(req)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, fmt.Errorf("failed to add team to project: %w", err)
 	}
 
@@ -135,7 +143,9 @@ func (c *Client) DeleteTeamFromProject(ctx context.Context, orgID, projectID, te
 	res, err := c.Do(req)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, fmt.Errorf("failed to delete team from project: %w", err)
 	}
 
@@ -160,7 +170,9 @@ func (c *Client) GetProject(ctx context.Context, orgID, projectID string) (*Deta
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, fmt.Errorf("failed to get project: %w", err)
 	}
 

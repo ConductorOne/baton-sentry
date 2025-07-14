@@ -33,7 +33,9 @@ func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organi
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, nil, fmt.Errorf("failed to list organizations: %w", err)
 	}
 
@@ -61,7 +63,9 @@ func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor stri
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, nil, nil, fmt.Errorf("failed to list organization members: %w", err)
 	}
 
@@ -86,7 +90,9 @@ func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID stri
 	)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return nil, res, fmt.Errorf("failed to get detailed organization member: %w", err)
 	}
 
@@ -115,7 +121,9 @@ func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, memb
 	res, err := c.Do(req)
 
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return fmt.Errorf("failed to add member to organization: %w", err)
 	}
 
@@ -136,7 +144,9 @@ func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID
 
 	res, err := c.Do(req)
 	if err != nil {
-		logBody(ctx, res.Body)
+		if res != nil {
+			logBody(ctx, res.Body)
+		}
 		return fmt.Errorf("failed to delete member from organization: %w", err)
 	}
 
