@@ -126,6 +126,9 @@ func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, enti
 	}
 
 	split := strings.Split(principal.Id.Resource, "/")
+	if len(split) != 2 {
+		return nil, fmt.Errorf("baton-sentry: expected team resource ID to be in the format 'orgId/teamId', got %s", principal.Id.Resource)
+	}
 
 	orgId := split[0]
 	teamId := split[1]
