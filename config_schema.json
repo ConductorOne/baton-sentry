@@ -1,7 +1,10 @@
 {
   "fields": [
     {
-      "name": "configField",
+      "name": "api-token",
+      "displayName": "API Token",
+      "description": "API Token for Sentry",
+      "isSecret": true,
       "stringField": {}
     },
     {
