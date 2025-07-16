@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"os"
 
-	cfg "github.com/conductorone/baton-sentry/pkg/config"
-	"github.com/conductorone/baton-sentry/pkg/connector"
 	"github.com/conductorone/baton-sdk/pkg/config"
 	"github.com/conductorone/baton-sdk/pkg/connectorbuilder"
 	"github.com/conductorone/baton-sdk/pkg/field"
 	"github.com/conductorone/baton-sdk/pkg/types"
+	cfg "github.com/conductorone/baton-sentry/pkg/config"
+	"github.com/conductorone/baton-sentry/pkg/connector"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"go.uber.org/zap"
 )
@@ -49,7 +49,7 @@ func getConnector[T field.Configurable](ctx context.Context, config T) (types.Co
 		return nil, err
 	}
 
-	cb, err := connector.New(ctx)
+	cb, err := connector.New(ctx, config.GetString(cfg.ApiToken.FieldName))
 	if err != nil {
 		l.Error("error creating connector", zap.Error(err))
 		return nil, err

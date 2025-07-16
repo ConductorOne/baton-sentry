@@ -6,8 +6,14 @@ import (
 
 var (
 	// Add the SchemaFields for the Config.
-	configField         = field.StringField("configField")
-	ConfigurationFields = []field.SchemaField{configField}
+	ApiToken = field.StringField(
+		"api-token",
+		field.WithDisplayName("API Token"),
+		field.WithDescription("API Token for Sentry"),
+		field.WithIsSecret(true),
+	)
+
+	ConfigurationFields = []field.SchemaField{ApiToken}
 
 	// FieldRelationships defines relationships between the ConfigurationFields that can be automatically validated.
 	// For example, a username and password can be required together, or an access token can be
