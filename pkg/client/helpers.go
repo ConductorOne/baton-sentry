@@ -26,6 +26,9 @@ func logBody(ctx context.Context, bodyCloser io.ReadCloser) {
 // https://docs.sentry.io/api/pagination/
 func HasNextPage(res *http.Response) bool {
 	for _, l := range link.ParseResponse(res) {
+		if l.Rel != "next" {
+			continue
+		}
 		if v, ok := l.Extra["results"]; ok && v == "true" {
 			return true
 		}
