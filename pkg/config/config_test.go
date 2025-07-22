@@ -14,16 +14,16 @@ func TestValidateConfig(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:   "valid config",
+			name: "valid config",
 			config: &Sentry{
-				// TODO: Add minimal valid configuration here once Config type is generated
+				ApiToken: "asdfasdfaasdf",
 			},
 			wantErr: false,
 		},
 		{
-			name:   "invalid config - missing required fields",
+			name: "invalid config - missing required fields",
 			config: &Sentry{
-				// TODO: Add configuration with missing required fields once Config type is generated
+				ApiToken: "",
 			},
 			wantErr: true,
 		},
