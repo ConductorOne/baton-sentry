@@ -65,7 +65,7 @@ func (o *organizationBuilder) List(ctx context.Context, parentResourceID *v2.Res
 
 	nextCursor := ""
 	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
+		nextCursor = client.NextCursor(ctx, res)
 	}
 
 	return ret, nextCursor, annotations, nil
@@ -83,14 +83,16 @@ func (o *organizationBuilder) Entitlements(_ context.Context, resource *v2.Resou
 }
 
 func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	cursor := ""
+	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
+
 	members, res, ratelimitDescription, err := o.client.ListOrganizationMembers(ctx, resource.Id.Resource, cursor)
 	if err != nil {
 		return nil, "", nil, err
 	}
+
 	var annotations annotations.Annotations
 	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 
@@ -104,7 +106,7 @@ func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource,
 		ret = append(ret, grant.NewGrant(resource, organizationMembership, resourceId))
 	}
 
-	nextCursor := ""
+	var nextCursor string
 	if client.HasNextPage(res) {
 		nextCursor = client.NextCursor(res)
 	}
