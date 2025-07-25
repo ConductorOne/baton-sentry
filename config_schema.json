@@ -4,8 +4,13 @@
       "name": "api-token",
       "displayName": "API Token",
       "description": "API Token for Sentry",
+      "isRequired": true,
       "isSecret": true,
-      "stringField": {}
+      "stringField": {
+        "rules": {
+          "isRequired": true
+        }
+      }
     },
     {
       "name": "log-level",
