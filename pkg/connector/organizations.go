@@ -19,7 +19,7 @@ type organizationBuilder struct {
 	client *client.Client
 }
 
-func (o *organizationBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
+func (o *organizationBuilder) ResourceType(_ context.Context) *v2.ResourceType {
 	return organizationResourceType
 }
 
@@ -41,7 +41,7 @@ func newOrgResource(org client.Organization) (*v2.Resource, error) {
 	)
 }
 
-func (o *organizationBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+func (o *organizationBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
 	cursor := ""
 	if pToken != nil {
 		cursor = pToken.Token
@@ -65,7 +65,7 @@ func (o *organizationBuilder) List(ctx context.Context, parentResourceID *v2.Res
 
 	nextCursor := ""
 	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(ctx, res)
+		nextCursor = client.NextCursor(res)
 	}
 
 	return ret, nextCursor, annotations, nil
