@@ -20,7 +20,7 @@ type projectBuilder struct {
 	client *client.Client
 }
 
-func (o *projectBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
+func (o *projectBuilder) ResourceType(_ context.Context) *v2.ResourceType {
 	return projectResourceType
 }
 
@@ -47,7 +47,7 @@ func (o *projectBuilder) List(ctx context.Context, parentResourceID *v2.Resource
 		return nil, "", nil, nil
 	}
 
-	cursor := ""
+	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
@@ -57,6 +57,7 @@ func (o *projectBuilder) List(ctx context.Context, parentResourceID *v2.Resource
 	if err != nil {
 		return nil, "", nil, err
 	}
+
 	var annotations annotations.Annotations
 	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 

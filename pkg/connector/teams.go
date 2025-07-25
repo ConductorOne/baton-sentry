@@ -45,7 +45,7 @@ func (o *teamBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, nil
 	}
 
-	cursor := ""
+	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
@@ -55,6 +55,7 @@ func (o *teamBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	if err != nil {
 		return nil, "", nil, err
 	}
+
 	var annotations annotations.Annotations
 	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 
@@ -64,10 +65,11 @@ func (o *teamBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		if err != nil {
 			return nil, "", nil, err
 		}
+
 		ret = append(ret, resource)
 	}
 
-	nextCursor := ""
+	var nextCursor string
 	if client.HasNextPage(res) {
 		nextCursor = client.NextCursor(res)
 	}
@@ -88,7 +90,7 @@ func (o *teamBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 }
 
 func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
-	cursor := ""
+	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
@@ -99,6 +101,7 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 	if err != nil {
 		return nil, "", nil, err
 	}
+
 	var annotations annotations.Annotations
 	annotations = *annotations.WithRateLimiting(ratelimitDescription)
 
@@ -112,7 +115,7 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 		ret = append(ret, grant.NewGrant(resource, teamMembership, resourceId))
 	}
 
-	nextCursor := ""
+	var nextCursor string
 	if client.HasNextPage(res) {
 		nextCursor = client.NextCursor(res)
 	}

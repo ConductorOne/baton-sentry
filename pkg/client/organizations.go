@@ -55,6 +55,12 @@ func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor stri
 		return nil, nil, nil, err
 	}
 
+	if cursor != "" {
+		q := req.URL.Query()
+		q.Set("cursor", cursor)
+		req.URL.RawQuery = q.Encode()
+	}
+
 	var target []OrganizationMember
 	var ratelimitData v2.RateLimitDescription
 	res, err := c.Do(req,
