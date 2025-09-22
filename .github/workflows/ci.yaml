@@ -9,12 +9,12 @@ jobs:
   go-lint:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.23.x
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
       - name: Run linters
         uses: golangci/golangci-lint-action@v8
         with:
@@ -24,17 +24,17 @@ jobs:
   test-teams:
     runs-on: ubuntu-latest
     env:
-      CONNECTOR_GRANT: 'team:4509594233733120/4509594233733121:member:user:14221376'
-      CONNECTOR_ENTITLEMENT: 'team:4509594233733120/4509594233733121:member'
-      CONNECTOR_PRINCIPAL: '14221376'
-      CONNECTOR_PRINCIPAL_TYPE: 'user'
+      CONNECTOR_GRANT: "team:4509594233733120/4509594233733121:member:user:14221376"
+      CONNECTOR_ENTITLEMENT: "team:4509594233733120/4509594233733121:member"
+      CONNECTOR_PRINCIPAL: "14221376"
+      CONNECTOR_PRINCIPAL_TYPE: "user"
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
       - name: Build baton-sentry
         run: go build ./cmd/baton-sentry
       - name: Run baton-sentry
@@ -71,17 +71,17 @@ jobs:
   test-projects:
     runs-on: ubuntu-latest
     env:
-      CONNECTOR_GRANT: 'project:4509634403696640:assigned:team:4509594233733120/4509594233733121'
-      CONNECTOR_ENTITLEMENT: 'project:4509634403696640:assigned'
-      CONNECTOR_PRINCIPAL: '4509594233733120/4509594233733121'
-      CONNECTOR_PRINCIPAL_TYPE: 'team'
+      CONNECTOR_GRANT: "project:4509634403696640:assigned:team:4509594233733120/4509594233733121"
+      CONNECTOR_ENTITLEMENT: "project:4509634403696640:assigned"
+      CONNECTOR_PRINCIPAL: "4509594233733120/4509594233733121"
+      CONNECTOR_PRINCIPAL_TYPE: "team"
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Install Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24.x
-      - name: Checkout code
-        uses: actions/checkout@v4
+          go-version-file: go.mod
       - name: Build baton-sentry
         run: go build ./cmd/baton-sentry
       - name: Run baton-sentry
@@ -114,4 +114,3 @@ jobs:
           ./baton-sentry && \
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | \
           jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\"" | grep -oq true
-
