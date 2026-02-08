@@ -5,6 +5,7 @@ import "reflect"
 
 type Sentry struct {
 	ApiToken string `mapstructure:"api-token"`
+	BaseUrl  string `mapstructure:"base-url"`
 }
 
 func (c* Sentry) findFieldByTag(tagValue string) (any, bool) {
