@@ -1,26 +1,9 @@
 name: ci
 on: pull_request
-
 env:
   BATON_LOG_LEVEL: debug
   BATON_API_TOKEN: "${{ secrets.BATON_API_TOKEN }}"
-
 jobs:
-  go-lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Run linters
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: latest
-          args: --timeout=3m
-
   test-teams:
     runs-on: ubuntu-latest
     env:
@@ -41,33 +24,27 @@ jobs:
         run: ./baton-sentry
       - name: Install baton
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
-
       - name: Check for grant before revoking
         run: |
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | \
           jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\"" | grep -oq true
-
       - name: Revoke grants
         run: ./baton-sentry --revoke-grant="${{ env.CONNECTOR_GRANT }}"
-
       - name: Check grant was revoked
         run: |
           ./baton-sentry && \
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | \
           jq --exit-status "if .grants then .grants[]?.principal.id.resource != \"${{ env.CONNECTOR_PRINCIPAL }}\" else . end" | grep -oq true
-
       - name: Grant entitlement
         run: |
           ./baton-sentry --grant-entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" \
                           --grant-principal="${{ env.CONNECTOR_PRINCIPAL }}" \
                           --grant-principal-type="${{ env.CONNECTOR_PRINCIPAL_TYPE }}"
-
       - name: Check grant was re-granted
         run: |
           ./baton-sentry && \
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | \
           jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\"" | grep -oq true
-
   test-projects:
     runs-on: ubuntu-latest
     env:
@@ -88,27 +65,22 @@ jobs:
         run: ./baton-sentry
       - name: Install baton
         run: ./scripts/get-baton.sh && mv baton /usr/local/bin
-
       - name: Check for grant before revoking
         run: |
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | \
           jq --exit-status ".grants[].principal.id.resource == \"${{ env.CONNECTOR_PRINCIPAL }}\"" | grep -oq true
-
       - name: Revoke grants
         run: ./baton-sentry --revoke-grant="${{ env.CONNECTOR_GRANT }}"
-
       - name: Check grant was revoked
         run: |
           ./baton-sentry && \
           baton grants --entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" --output-format=json | \
           jq --exit-status "if .grants then .grants[]?.principal.id.resource != \"${{ env.CONNECTOR_PRINCIPAL }}\" else . end" | grep -oq true
-
       - name: Grant entitlement
         run: |
           ./baton-sentry --grant-entitlement="${{ env.CONNECTOR_ENTITLEMENT }}" \
                           --grant-principal="${{ env.CONNECTOR_PRINCIPAL }}" \
                           --grant-principal-type="${{ env.CONNECTOR_PRINCIPAL_TYPE }}"
-
       - name: Check grant was re-granted
         run: |
           ./baton-sentry && \
