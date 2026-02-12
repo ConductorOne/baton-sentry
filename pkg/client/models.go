@@ -460,3 +460,11 @@ type AddOrganizationMemberBody struct {
 	// "owner", "manager", "member", "billing"
 	OrgRole string `json:"orgRole,omitempty"`
 }
+
+// UpdateOrganizationMemberBody is the request body for updating a member's organization role.
+// https://docs.sentry.io/api/organizations/update-an-organization-members-roles/
+type UpdateOrganizationMemberBody struct {
+	// The organization role to assign.
+	// Possible values: "billing", "member", "admin", "manager", "owner"
+	OrgRole string `json:"orgRole"`
+}

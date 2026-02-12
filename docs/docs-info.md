@@ -9,8 +9,10 @@ While developing the connector, please fill out this form. This information is n
 - Users
 
 2. Can the connector provision any resources? If so, which ones? 
-- Teams
-- Projects
+- Users (create account / invite to organization, delete from organization)
+- Organization Roles (grant/revoke org-level roles: billing, member, admin, manager, owner)
+- Teams (grant/revoke team membership)
+- Projects (grant/revoke team assignment to projects)
 
 ## Connector credentials 
 
