@@ -164,17 +164,9 @@ func (c *Client) UpdateOrganizationMemberRole(ctx context.Context, orgID, member
 		uhttp.WithJSONResponse(&target),
 	)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
 		return nil, fmt.Errorf("failed to update organization member role: %w", err)
 	}
-
 	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, fmt.Errorf("failed to update organization member role: %s", res.Status)
-	}
 
 	return &target, nil
 }
