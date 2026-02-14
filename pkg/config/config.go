@@ -16,6 +16,7 @@ var (
 	BaseURL = field.StringField(
 		"base-url",
 		field.WithDescription("Override the Sentry API URL (for testing or self-hosted)"),
+		field.WithHidden(true),
 	)
 
 	ConfigurationFields = []field.SchemaField{ApiToken, BaseURL}
