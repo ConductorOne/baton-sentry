@@ -142,6 +142,35 @@ func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, memb
 	return nil
 }
 
+// UpdateOrganizationMemberRole updates a member's organization-level role.
+// https://docs.sentry.io/api/organizations/update-an-organization-members-roles/
+// NOTE: Changing organization roles is restricted to user auth tokens.
+func (c *Client) UpdateOrganizationMemberRole(ctx context.Context, orgID, memberID, role string) (*DetailedMember, error) {
+	body := UpdateOrganizationMemberBody{OrgRole: role}
+	v, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal update member role body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, fmt.Sprintf(OrganizationOneMemberUrl, orgID, memberID), bytes.NewReader(v))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request to update member role: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	var target DetailedMember
+	res, err := c.Do(req,
+		uhttp.WithJSONResponse(&target),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update organization member role: %w", err)
+	}
+	defer res.Body.Close()
+
+	return &target, nil
+}
+
 func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(OrganizationOneMemberUrl, orgID, userID), nil)
 	if err != nil {
