@@ -101,10 +101,22 @@ func (o *userBuilder) CreateAccount(ctx context.Context, accountInfo *v2.Account
 	annotations.Annotations,
 	error,
 ) {
-	pMap := accountInfo.Profile.AsMap()
-	email, ok := pMap["email"].(string)
-	if !ok {
-		return nil, nil, nil, fmt.Errorf("baton-sentry: email not found in profile")
+	// Read email from the structured Emails field (how the C1 platform sends it)
+	var email string
+	for _, e := range accountInfo.GetEmails() {
+		if e.GetIsPrimary() {
+			email = e.GetAddress()
+			break
+		}
+	}
+
+	// Fall back to profile map for backward compatibility
+	pMap := accountInfo.GetProfile().AsMap()
+	if email == "" {
+		email, _ = pMap["email"].(string)
+	}
+	if email == "" {
+		return nil, nil, nil, fmt.Errorf("baton-sentry: email not found in account info")
 	}
 
 	orgId, ok := pMap["orgID"].(string)
