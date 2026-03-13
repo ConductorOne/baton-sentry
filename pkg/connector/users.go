@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
@@ -118,6 +119,9 @@ func (o *userBuilder) CreateAccount(ctx context.Context, accountInfo *v2.Account
 		OrgRole: orgRole,
 	})
 	if err != nil {
+		if errors.Is(err, client.ErrMemberAlreadyExists) {
+			return &v2.CreateAccountResponse_ActionRequiredResult{}, nil, nil, nil
+		}
 		return nil, nil, nil, fmt.Errorf("baton-sentry: failed to create account: %w", err)
 	}
 

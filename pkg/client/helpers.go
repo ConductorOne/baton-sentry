@@ -23,6 +23,28 @@ func logBody(ctx context.Context, bodyCloser io.ReadCloser) {
 	l.Info("response body: ", zap.String("body", string(body[:n])))
 }
 
+// readBody reads the response body and returns it as a string.
+// It also logs the body for debugging. The returned string is
+// truncated to 1024 bytes to avoid excessively large error messages.
+func readBody(ctx context.Context, bodyCloser io.ReadCloser) string {
+	if bodyCloser == nil {
+		return ""
+	}
+	defer bodyCloser.Close()
+	l := ctxzap.Extract(ctx)
+	body, err := io.ReadAll(bodyCloser)
+	if err != nil {
+		l.Error("error reading response body", zap.Error(err))
+		return ""
+	}
+	s := string(body)
+	l.Info("response body", zap.String("body", s))
+	if len(s) > 1024 {
+		s = s[:1024]
+	}
+	return s
+}
+
 // https://docs.sentry.io/api/pagination/
 func HasNextPage(res *http.Response) bool {
 	for _, l := range link.ParseResponse(res) {

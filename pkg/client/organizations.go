@@ -4,12 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
+
+// ErrMemberAlreadyExists is returned when the Sentry API indicates
+// the member is already part of the organization.
+var ErrMemberAlreadyExists = errors.New("member already exists")
 
 // docs: https://docs.sentry.io/api/organizations/
 
@@ -128,18 +134,37 @@ func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, memb
 
 	if err != nil {
 		if res != nil {
-			logBody(ctx, res.Body)
+			body := readBody(ctx, res.Body)
+			if isMemberAlreadyExistsError(body) {
+				return ErrMemberAlreadyExists
+			}
+			if body != "" {
+				return fmt.Errorf("failed to add member to organization: %w: %s", err, body)
+			}
 		}
 		return fmt.Errorf("failed to add member to organization: %w", err)
 	}
 
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
+		body := readBody(ctx, res.Body)
+		if isMemberAlreadyExistsError(body) {
+			return ErrMemberAlreadyExists
+		}
+		if body != "" {
+			return fmt.Errorf("failed to add member to organization: %s: %s", res.Status, body)
+		}
 		return fmt.Errorf("failed to add member to organization: %s", res.Status)
 	}
 
 	return nil
+}
+
+// isMemberAlreadyExistsError checks if the Sentry API response body
+// indicates the member is already part of the organization.
+func isMemberAlreadyExistsError(body string) bool {
+	lower := strings.ToLower(body)
+	return strings.Contains(lower, "already a member") || strings.Contains(lower, "member already exists")
 }
 
 // UpdateOrganizationMemberRole updates a member's organization-level role.
@@ -180,14 +205,20 @@ func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID
 	res, err := c.Do(req)
 	if err != nil {
 		if res != nil {
-			logBody(ctx, res.Body)
+			body := readBody(ctx, res.Body)
+			if body != "" {
+				return fmt.Errorf("failed to delete member from organization: %w: %s", err, body)
+			}
 		}
 		return fmt.Errorf("failed to delete member from organization: %w", err)
 	}
 
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
+		body := readBody(ctx, res.Body)
+		if body != "" {
+			return fmt.Errorf("failed to delete member from organization: %s: %s", res.Status, body)
+		}
 		return fmt.Errorf("failed to delete member from organization: %s", res.Status)
 	}
 
