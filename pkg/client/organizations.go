@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
 
 // docs: https://docs.sentry.io/api/organizations/
@@ -26,26 +25,12 @@ func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organi
 	}
 
 	var target []Organization
-	var ratelimitData v2.RateLimitDescription
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-		uhttp.WithRatelimitData(&ratelimitData),
-	)
-
+	res, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, nil, nil, fmt.Errorf("failed to list organizations: %w", err)
+		return nil, nil, rl, fmt.Errorf("failed to list organizations: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, nil, nil, fmt.Errorf("failed to list organizations: %s", res.Status)
-	}
-
-	return target, res, &ratelimitData, nil
+	return target, res, rl, nil
 }
 
 // https://docs.sentry.io/api/guides/teams-tutorial/#list-an-organizations-teams-1
@@ -62,134 +47,85 @@ func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor stri
 	}
 
 	var target []OrganizationMember
-	var ratelimitData v2.RateLimitDescription
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-		uhttp.WithRatelimitData(&ratelimitData),
-	)
-
+	res, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, nil, nil, fmt.Errorf("failed to list organization members: %w", err)
+		return nil, nil, rl, fmt.Errorf("failed to list organization members: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, nil, nil, fmt.Errorf("failed to list organization members: %s", res.Status)
-	}
-
-	return target, res, &ratelimitData, nil
+	return target, res, rl, nil
 }
 
-func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID string) (*DetailedMember, *http.Response, error) {
+func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID string) (*DetailedMember, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationOneMemberUrl, orgID, memberID), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var target DetailedMember
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-	)
-
+	_, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, res, fmt.Errorf("failed to get detailed organization member: %w", err)
+		return nil, rl, fmt.Errorf("failed to get organization member: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, res, fmt.Errorf("failed to get detailed organization member: %s", res.Status)
-	}
-
-	return &target, res, nil
+	return &target, rl, nil
 }
 
-func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, member AddOrganizationMemberBody) error {
+func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, member AddOrganizationMemberBody) (*OrganizationMember, *v2.RateLimitDescription, error) {
 	v, err := json.Marshal(member)
 	if err != nil {
-		return fmt.Errorf("failed to marshal member: %w", err)
+		return nil, nil, fmt.Errorf("failed to marshal member: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(OrganizationMembersUrl, orgID), bytes.NewReader(v))
 	if err != nil {
-		return fmt.Errorf("failed to create request to add member to organization: %w", err)
+		return nil, nil, err
 	}
-
 	req.Header.Set("Content-Type", "application/json")
 
-	res, err := c.Do(req)
-
+	var target OrganizationMember
+	_, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return fmt.Errorf("failed to add member to organization: %w", err)
+		return nil, rl, fmt.Errorf("failed to add member to organization: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return fmt.Errorf("failed to add member to organization: %s", res.Status)
-	}
-
-	return nil
+	return &target, rl, nil
 }
 
 // UpdateOrganizationMemberRole updates a member's organization-level role.
 // https://docs.sentry.io/api/organizations/update-an-organization-members-roles/
 // NOTE: Changing organization roles is restricted to user auth tokens.
-func (c *Client) UpdateOrganizationMemberRole(ctx context.Context, orgID, memberID, role string) (*DetailedMember, error) {
+func (c *Client) UpdateOrganizationMemberRole(ctx context.Context, orgID, memberID, role string) (*DetailedMember, *v2.RateLimitDescription, error) {
 	body := UpdateOrganizationMemberBody{OrgRole: role}
 	v, err := json.Marshal(body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal update member role body: %w", err)
+		return nil, nil, fmt.Errorf("failed to marshal update member role body: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, fmt.Sprintf(OrganizationOneMemberUrl, orgID, memberID), bytes.NewReader(v))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request to update member role: %w", err)
+		return nil, nil, err
 	}
-
 	req.Header.Set("Content-Type", "application/json")
 
 	var target DetailedMember
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-	)
+	_, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update organization member role: %w", err)
+		return nil, rl, fmt.Errorf("failed to update organization member role: %w", err)
 	}
-	defer res.Body.Close()
 
-	return &target, nil
+	return &target, rl, nil
 }
 
-func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID string) error {
+func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID string) (*v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(OrganizationOneMemberUrl, orgID, userID), nil)
 	if err != nil {
-		return fmt.Errorf("failed to create request to delete member: %w", err)
+		return nil, err
 	}
 
-	res, err := c.Do(req)
+	_, rl, err := c.doRequest(req, nil)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return fmt.Errorf("failed to delete member from organization: %w", err)
+		return rl, fmt.Errorf("failed to delete member from organization: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return fmt.Errorf("failed to delete member from organization: %s", res.Status)
-	}
-
-	return nil
+	return rl, nil
 }

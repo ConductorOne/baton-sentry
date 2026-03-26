@@ -3,25 +3,10 @@ package client
 import (
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 	"github.com/peterhellberg/link"
-	"go.uber.org/zap"
 )
-
-func logBody(ctx context.Context, bodyCloser io.ReadCloser) {
-	defer bodyCloser.Close()
-	l := ctxzap.Extract(ctx)
-	body := make([]byte, 1024*1024)
-	n, err := bodyCloser.Read(body)
-	if err != nil {
-		l.Error("error reading response body", zap.Error(err))
-		return
-	}
-	l.Info("response body: ", zap.String("body", string(body[:n])))
-}
 
 // https://docs.sentry.io/api/pagination/
 func HasNextPage(res *http.Response) bool {
@@ -53,7 +38,6 @@ func FindUserOrgID(ctx context.Context, client *Client, userID string) (string, 
 	cursor := ""
 	for {
 		organizations, res, _, err := client.ListOrganizations(ctx, cursor)
-		defer res.Body.Close()
 		if err != nil {
 			return "", fmt.Errorf("failed to list organizations: %w", err)
 		}
@@ -67,8 +51,7 @@ func FindUserOrgID(ctx context.Context, client *Client, userID string) (string, 
 
 	userOrgID := ""
 	for _, org := range allOrgs {
-		_, res, err := client.GetOrganizationMember(ctx, org.ID, userID)
-		defer res.Body.Close()
+		_, _, err := client.GetOrganizationMember(ctx, org.ID, userID)
 		if err != nil {
 			continue
 		}

@@ -62,23 +62,25 @@ func newOrgResource(org client.Organization) (*v2.Resource, error) {
 }
 
 func (o *organizationBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken *pagination.Token) ([]*v2.Resource, string, annotations.Annotations, error) {
+	ann := annotations.New()
 	cursor := ""
 	if pToken != nil {
 		cursor = pToken.Token
 	}
 
-	orgs, res, ratelimitDescription, err := o.client.ListOrganizations(ctx, cursor)
-	if err != nil {
-		return nil, "", nil, fmt.Errorf("baton-sentry: failed to list organizations: %w", err)
+	orgs, res, rl, err := o.client.ListOrganizations(ctx, cursor)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
 	}
-	var annotations annotations.Annotations
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
+	if err != nil {
+		return nil, "", ann, fmt.Errorf("baton-sentry: failed to list organizations: %w", err)
+	}
 
 	ret := make([]*v2.Resource, 0, len(orgs))
 	for _, org := range orgs {
 		resource, err := newOrgResource(org)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("baton-sentry: failed to create resource for organization %s: %w", org.ID, err)
+			return nil, "", ann, fmt.Errorf("baton-sentry: failed to create resource for organization %s: %w", org.ID, err)
 		}
 		ret = append(ret, resource)
 	}
@@ -88,7 +90,7 @@ func (o *organizationBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken
 		nextCursor = client.NextCursor(res)
 	}
 
-	return ret, nextCursor, annotations, nil
+	return ret, nextCursor, ann, nil
 }
 
 // Entitlements returns one permission entitlement per Sentry organization role.
@@ -113,25 +115,26 @@ func (o *organizationBuilder) Entitlements(_ context.Context, resource *v2.Resou
 // The orgRole field from the Sentry API response determines which role entitlement is granted.
 func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
+	ann := annotations.New()
 
 	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
 
-	members, res, ratelimitDescription, err := o.client.ListOrganizationMembers(ctx, resource.Id.Resource, cursor)
-	if err != nil {
-		return nil, "", nil, err
+	members, res, rl, err := o.client.ListOrganizationMembers(ctx, resource.Id.Resource, cursor)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
 	}
-
-	var annotations annotations.Annotations
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
+	if err != nil {
+		return nil, "", ann, err
+	}
 
 	ret := make([]*v2.Grant, 0, len(members))
 	for _, member := range members {
 		resourceId, err := resourceSdk.NewResourceID(userResourceType, member.ID)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("baton-sentry: failed to create resource ID for user %s: %w", member.ID, err)
+			return nil, "", ann, fmt.Errorf("baton-sentry: failed to create resource ID for user %s: %w", member.ID, err)
 		}
 
 		role := member.OrgRole
@@ -156,7 +159,7 @@ func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource,
 		nextCursor = client.NextCursor(res)
 	}
 
-	return ret, nextCursor, annotations, nil
+	return ret, nextCursor, ann, nil
 }
 
 // Grant changes a member's organization role to the requested role.
@@ -164,6 +167,7 @@ func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource,
 // NOTE: Changing org roles requires a user auth token (not org-level API tokens).
 func (o *organizationBuilder) Grant(ctx context.Context, principal *v2.Resource, ent *v2.Entitlement) (annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
+	ann := annotations.New()
 
 	if principal.Id.ResourceType != userResourceType.Id {
 		return nil, fmt.Errorf("baton-sentry: expected principal to be a user, got %s", principal.Id.ResourceType)
@@ -174,9 +178,12 @@ func (o *organizationBuilder) Grant(ctx context.Context, principal *v2.Resource,
 	desiredRole := ent.Slug
 
 	// Check if the member already has this role.
-	member, _, err := o.client.GetOrganizationMember(ctx, orgID, memberID)
+	member, rl, err := o.client.GetOrganizationMember(ctx, orgID, memberID)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to get organization member %s: %w", memberID, err)
+		return ann, fmt.Errorf("baton-sentry: failed to get organization member %s: %w", memberID, err)
 	}
 
 	if member.OrgRole == desiredRole {
@@ -190,12 +197,15 @@ func (o *organizationBuilder) Grant(ctx context.Context, principal *v2.Resource,
 		zap.String("desired_role", desiredRole),
 	)
 
-	_, err = o.client.UpdateOrganizationMemberRole(ctx, orgID, memberID, desiredRole)
+	_, rl, err = o.client.UpdateOrganizationMemberRole(ctx, orgID, memberID, desiredRole)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to update organization member role: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to update organization member role: %w", err)
 	}
 
-	return nil, nil
+	return ann, nil
 }
 
 // Revoke changes a member's organization role back to the default "member" role
@@ -203,15 +213,19 @@ func (o *organizationBuilder) Grant(ctx context.Context, principal *v2.Resource,
 // since the member cannot be downgraded further without removing them from the organization.
 func (o *organizationBuilder) Revoke(ctx context.Context, gnt *v2.Grant) (annotations.Annotations, error) {
 	l := ctxzap.Extract(ctx)
+	ann := annotations.New()
 
 	memberID := gnt.Principal.Id.Resource
 	orgID := gnt.Entitlement.Resource.Id.Resource
 	revokedRole := gnt.Entitlement.Slug
 
 	// Check if the member still has this role.
-	member, _, err := o.client.GetOrganizationMember(ctx, orgID, memberID)
+	member, rl, err := o.client.GetOrganizationMember(ctx, orgID, memberID)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to get organization member %s: %w", memberID, err)
+		return ann, fmt.Errorf("baton-sentry: failed to get organization member %s: %w", memberID, err)
 	}
 
 	if member.OrgRole != revokedRole {
@@ -234,12 +248,15 @@ func (o *organizationBuilder) Revoke(ctx context.Context, gnt *v2.Grant) (annota
 		zap.String("new_role", defaultOrgRole),
 	)
 
-	_, err = o.client.UpdateOrganizationMemberRole(ctx, orgID, memberID, defaultOrgRole)
+	_, rl, err = o.client.UpdateOrganizationMemberRole(ctx, orgID, memberID, defaultOrgRole)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to downgrade organization member role: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to downgrade organization member role: %w", err)
 	}
 
-	return nil, nil
+	return ann, nil
 }
 
 func newOrganizationBuilder(client *client.Client) *organizationBuilder {

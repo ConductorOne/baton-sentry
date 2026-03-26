@@ -46,24 +46,26 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	if parentResourceID == nil {
 		return nil, "", nil, nil
 	}
-	var cursor string
 
+	ann := annotations.New()
+	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
 
-	members, res, ratelimitDescription, err := o.client.ListOrganizationMembers(ctx, parentResourceID.Resource, cursor)
-	if err != nil {
-		return nil, "", nil, err
+	members, res, rl, err := o.client.ListOrganizationMembers(ctx, parentResourceID.Resource, cursor)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
 	}
-	var annotations annotations.Annotations
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
+	if err != nil {
+		return nil, "", ann, err
+	}
 
 	ret := make([]*v2.Resource, 0, len(members))
 	for _, member := range members {
 		resource, err := newUserResource(member, parentResourceID)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, "", ann, err
 		}
 		ret = append(ret, resource)
 	}
@@ -73,7 +75,7 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		nextCursor = client.NextCursor(res)
 	}
 
-	return ret, nextCursor, annotations, nil
+	return ret, nextCursor, ann, nil
 }
 
 // Entitlements always returns an empty slice for users.
@@ -101,6 +103,7 @@ func (o *userBuilder) CreateAccount(ctx context.Context, accountInfo *v2.Account
 	annotations.Annotations,
 	error,
 ) {
+	ann := annotations.New()
 	pMap := accountInfo.Profile.AsMap()
 	email, ok := pMap["email"].(string)
 	if !ok {
@@ -113,30 +116,48 @@ func (o *userBuilder) CreateAccount(ctx context.Context, accountInfo *v2.Account
 	}
 
 	orgRole, _ := pMap["orgRole"].(string)
-	err := o.client.AddMemberToOrganization(ctx, orgId, client.AddOrganizationMemberBody{
+	createdMember, rl, err := o.client.AddMemberToOrganization(ctx, orgId, client.AddOrganizationMemberBody{
 		Email:   email,
 		OrgRole: orgRole,
 	})
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("baton-sentry: failed to create account: %w", err)
+		return nil, nil, ann, fmt.Errorf("baton-sentry: failed to create account: %w", err)
 	}
 
-	return &v2.CreateAccountResponse_ActionRequiredResult{}, nil, nil, nil
+	parentResourceID := &v2.ResourceId{
+		ResourceType: organizationResourceType.Id,
+		Resource:     orgId,
+	}
+	userResource, err := newUserResource(*createdMember, parentResourceID)
+	if err != nil {
+		return nil, nil, ann, fmt.Errorf("baton-sentry: failed to build user resource: %w", err)
+	}
+
+	return &v2.CreateAccountResponse_SuccessResult{
+		Resource: userResource,
+	}, nil, ann, nil
 }
 
 func (o *userBuilder) Delete(ctx context.Context, resourceId *v2.ResourceId) (annotations.Annotations, error) {
+	ann := annotations.New()
 	userID := resourceId.Resource
 	orgID, err := client.FindUserOrgID(ctx, o.client, userID)
 	if err != nil {
 		return nil, fmt.Errorf("baton-sentry: failed to find organization for user %s: %w", resourceId.Resource, err)
 	}
 
-	err = o.client.DeleteMemberFromOrganization(ctx, orgID, userID)
+	rl, err := o.client.DeleteMemberFromOrganization(ctx, orgID, userID)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to delete user %s from organization %s: %w", userID, orgID, err)
+		return ann, fmt.Errorf("baton-sentry: failed to delete user %s from organization %s: %w", userID, orgID, err)
 	}
 
-	return nil, nil
+	return ann, nil
 }
 
 func newUserBuilder(client *client.Client) *userBuilder {

@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
-	"github.com/conductorone/baton-sdk/pkg/uhttp"
 )
 
 func (c *Client) ListProjects(ctx context.Context, orgID, cursor string) ([]Project, *http.Response, *v2.RateLimitDescription, error) {
@@ -22,26 +21,12 @@ func (c *Client) ListProjects(ctx context.Context, orgID, cursor string) ([]Proj
 	}
 
 	var target []Project
-	var ratelimitData v2.RateLimitDescription
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-		uhttp.WithRatelimitData(&ratelimitData),
-	)
-
+	res, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, nil, nil, fmt.Errorf("failed to list projects: %w", err)
+		return nil, nil, rl, fmt.Errorf("failed to list projects: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, nil, nil, fmt.Errorf("failed to list projects: %s", res.Status)
-	}
-
-	return target, res, &ratelimitData, nil
+	return target, res, rl, nil
 }
 
 func (c *Client) ListTeamProjects(ctx context.Context, orgID, teamID, cursor string) ([]Project, *http.Response, *v2.RateLimitDescription, error) {
@@ -57,26 +42,12 @@ func (c *Client) ListTeamProjects(ctx context.Context, orgID, teamID, cursor str
 	}
 
 	var target []Project
-	var ratelimitData v2.RateLimitDescription
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-		uhttp.WithRatelimitData(&ratelimitData),
-	)
-
+	res, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, nil, nil, fmt.Errorf("failed to list projects: %w", err)
+		return nil, nil, rl, fmt.Errorf("failed to list team projects: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, nil, nil, fmt.Errorf("failed to list projects: %s", res.Status)
-	}
-
-	return target, res, &ratelimitData, nil
+	return target, res, rl, nil
 }
 
 // https://docs.sentry.io/api/projects/list-a-projects-organization-members/
@@ -88,99 +59,53 @@ func (c *Client) ListProjectMembers(ctx context.Context, orgID, projectID, curso
 	}
 
 	var target []ProjectMember
-	var ratelimitData v2.RateLimitDescription
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-		uhttp.WithRatelimitData(&ratelimitData),
-	)
-
+	res, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, nil, nil, fmt.Errorf("failed to list project members: %w", err)
+		return nil, nil, rl, fmt.Errorf("failed to list project members: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, nil, nil, fmt.Errorf("failed to list project members: %s", res.Status)
-	}
-
-	return target, res, &ratelimitData, nil
+	return target, res, rl, nil
 }
 
-func (c *Client) AddTeamToProject(ctx context.Context, orgID, projectID, teamID string) (*http.Response, error) {
+func (c *Client) AddTeamToProject(ctx context.Context, orgID, projectID, teamID string) (*v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(ProvisionProjectTeamUrl, orgID, projectID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := c.Do(req)
-
+	_, rl, err := c.doRequest(req, nil)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, fmt.Errorf("failed to add team to project: %w", err)
+		return rl, fmt.Errorf("failed to add team to project: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, fmt.Errorf("failed to add team to project: %s", res.Status)
-	}
-
-	return res, nil
+	return rl, nil
 }
 
-func (c *Client) DeleteTeamFromProject(ctx context.Context, orgID, projectID, teamID string) (*http.Response, error) {
+func (c *Client) DeleteTeamFromProject(ctx context.Context, orgID, projectID, teamID string) (*v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(ProvisionProjectTeamUrl, orgID, projectID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := c.Do(req)
-
+	_, rl, err := c.doRequest(req, nil)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, fmt.Errorf("failed to delete team from project: %w", err)
+		return rl, fmt.Errorf("failed to delete team from project: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, fmt.Errorf("failed to delete team from project: %s", res.Status)
-	}
-
-	return res, nil
+	return rl, nil
 }
 
-func (c *Client) GetProject(ctx context.Context, orgID, projectID string) (*DetailedProject, *http.Response, error) {
+func (c *Client) GetProject(ctx context.Context, orgID, projectID string) (*DetailedProject, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(ProjectsUrl, orgID, projectID), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var target DetailedProject
-	res, err := c.Do(req,
-		uhttp.WithJSONResponse(&target),
-	)
-
+	_, rl, err := c.doRequest(req, &target)
 	if err != nil {
-		if res != nil {
-			logBody(ctx, res.Body)
-		}
-		return nil, nil, fmt.Errorf("failed to get project: %w", err)
+		return nil, rl, fmt.Errorf("failed to get project: %w", err)
 	}
 
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode >= 300 {
-		logBody(ctx, res.Body)
-		return nil, nil, fmt.Errorf("failed to get project: %s", res.Status)
-	}
-
-	return &target, res, nil
+	return &target, rl, nil
 }
