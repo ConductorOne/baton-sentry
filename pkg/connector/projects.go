@@ -54,7 +54,7 @@ func (o *projectBuilder) List(ctx context.Context, parentResourceID *v2.Resource
 	}
 
 	orgID := parentResourceID.Resource
-	projects, res, rl, err := o.client.ListProjects(ctx, orgID, cursor)
+	projects, nextCursor, rl, err := o.client.ListProjects(ctx, orgID, cursor)
 	if rl != nil {
 		ann.WithRateLimiting(rl)
 	}
@@ -69,11 +69,6 @@ func (o *projectBuilder) List(ctx context.Context, parentResourceID *v2.Resource
 			return nil, "", ann, err
 		}
 		ret = append(ret, resource)
-	}
-
-	nextCursor := ""
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
 	}
 
 	return ret, nextCursor, ann, nil

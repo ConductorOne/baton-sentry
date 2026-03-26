@@ -12,10 +12,10 @@ import (
 
 // docs: https://docs.sentry.io/api/organizations/
 
-func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organization, *http.Response, *v2.RateLimitDescription, error) {
+func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organization, string, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, OrganizationsUrl, nil)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, "", nil, err
 	}
 
 	if cursor != "" {
@@ -25,19 +25,23 @@ func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organi
 	}
 
 	var target []Organization
-	res, rl, err := c.doRequest(req, &target)
+	res, rl, err := c.doRequest(req, &target) //nolint:bodyclose // body closed by doRequest
 	if err != nil {
-		return nil, nil, rl, fmt.Errorf("failed to list organizations: %w", err)
+		return nil, "", rl, fmt.Errorf("failed to list organizations: %w", err)
 	}
 
-	return target, res, rl, nil
+	var nextCursor string
+	if HasNextPage(res) {
+		nextCursor = NextCursor(res)
+	}
+	return target, nextCursor, rl, nil
 }
 
 // https://docs.sentry.io/api/guides/teams-tutorial/#list-an-organizations-teams-1
-func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor string) ([]OrganizationMember, *http.Response, *v2.RateLimitDescription, error) {
+func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor string) ([]OrganizationMember, string, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationMembersUrl, orgID), nil)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, "", nil, err
 	}
 
 	if cursor != "" {
@@ -47,12 +51,16 @@ func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor stri
 	}
 
 	var target []OrganizationMember
-	res, rl, err := c.doRequest(req, &target)
+	res, rl, err := c.doRequest(req, &target) //nolint:bodyclose // body closed by doRequest
 	if err != nil {
-		return nil, nil, rl, fmt.Errorf("failed to list organization members: %w", err)
+		return nil, "", rl, fmt.Errorf("failed to list organization members: %w", err)
 	}
 
-	return target, res, rl, nil
+	var nextCursor string
+	if HasNextPage(res) {
+		nextCursor = NextCursor(res)
+	}
+	return target, nextCursor, rl, nil
 }
 
 func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID string) (*DetailedMember, *v2.RateLimitDescription, error) {
@@ -62,7 +70,7 @@ func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID stri
 	}
 
 	var target DetailedMember
-	_, rl, err := c.doRequest(req, &target)
+	_, rl, err := c.doRequest(req, &target) //nolint:bodyclose // body closed by doRequest
 	if err != nil {
 		return nil, rl, fmt.Errorf("failed to get organization member: %w", err)
 	}
@@ -83,7 +91,7 @@ func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, memb
 	req.Header.Set("Content-Type", "application/json")
 
 	var target OrganizationMember
-	_, rl, err := c.doRequest(req, &target)
+	_, rl, err := c.doRequest(req, &target) //nolint:bodyclose // body closed by doRequest
 	if err != nil {
 		return nil, rl, fmt.Errorf("failed to add member to organization: %w", err)
 	}
@@ -108,7 +116,7 @@ func (c *Client) UpdateOrganizationMemberRole(ctx context.Context, orgID, member
 	req.Header.Set("Content-Type", "application/json")
 
 	var target DetailedMember
-	_, rl, err := c.doRequest(req, &target)
+	_, rl, err := c.doRequest(req, &target) //nolint:bodyclose // body closed by doRequest
 	if err != nil {
 		return nil, rl, fmt.Errorf("failed to update organization member role: %w", err)
 	}
@@ -122,7 +130,7 @@ func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID
 		return nil, err
 	}
 
-	_, rl, err := c.doRequest(req, nil)
+	_, rl, err := c.doRequest(req, nil) //nolint:bodyclose // body closed by doRequest
 	if err != nil {
 		return rl, fmt.Errorf("failed to delete member from organization: %w", err)
 	}

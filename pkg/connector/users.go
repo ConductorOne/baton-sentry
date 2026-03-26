@@ -53,7 +53,7 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		cursor = pToken.Token
 	}
 
-	members, res, rl, err := o.client.ListOrganizationMembers(ctx, parentResourceID.Resource, cursor)
+	members, nextCursor, rl, err := o.client.ListOrganizationMembers(ctx, parentResourceID.Resource, cursor)
 	if rl != nil {
 		ann.WithRateLimiting(rl)
 	}
@@ -68,11 +68,6 @@ func (o *userBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 			return nil, "", ann, err
 		}
 		ret = append(ret, resource)
-	}
-
-	nextCursor := ""
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
 	}
 
 	return ret, nextCursor, ann, nil

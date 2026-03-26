@@ -68,7 +68,7 @@ func (o *organizationBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken
 		cursor = pToken.Token
 	}
 
-	orgs, res, rl, err := o.client.ListOrganizations(ctx, cursor)
+	orgs, nextCursor, rl, err := o.client.ListOrganizations(ctx, cursor)
 	if rl != nil {
 		ann.WithRateLimiting(rl)
 	}
@@ -83,11 +83,6 @@ func (o *organizationBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken
 			return nil, "", ann, fmt.Errorf("baton-sentry: failed to create resource for organization %s: %w", org.ID, err)
 		}
 		ret = append(ret, resource)
-	}
-
-	nextCursor := ""
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
 	}
 
 	return ret, nextCursor, ann, nil
@@ -122,7 +117,7 @@ func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource,
 		cursor = pToken.Token
 	}
 
-	members, res, rl, err := o.client.ListOrganizationMembers(ctx, resource.Id.Resource, cursor)
+	members, nextCursor, rl, err := o.client.ListOrganizationMembers(ctx, resource.Id.Resource, cursor)
 	if rl != nil {
 		ann.WithRateLimiting(rl)
 	}
@@ -152,11 +147,6 @@ func (o *organizationBuilder) Grants(ctx context.Context, resource *v2.Resource,
 		}
 
 		ret = append(ret, grant.NewGrant(resource, role, resourceId))
-	}
-
-	var nextCursor string
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
 	}
 
 	return ret, nextCursor, ann, nil

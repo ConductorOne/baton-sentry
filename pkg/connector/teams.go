@@ -52,7 +52,7 @@ func (o *teamBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 	}
 
 	orgID := parentResourceID.Resource
-	teams, res, rl, err := o.client.ListTeams(ctx, orgID, cursor)
+	teams, nextCursor, rl, err := o.client.ListTeams(ctx, orgID, cursor)
 	if rl != nil {
 		ann.WithRateLimiting(rl)
 	}
@@ -67,11 +67,6 @@ func (o *teamBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 			return nil, "", ann, err
 		}
 		ret = append(ret, resource)
-	}
-
-	var nextCursor string
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
 	}
 
 	return ret, nextCursor, ann, nil
@@ -98,7 +93,7 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 
 	orgID := resource.ParentResourceId.Resource
 	teamID := strings.Split(resource.Id.Resource, "/")[1]
-	members, res, rl, err := o.client.ListTeamMembers(ctx, orgID, teamID, cursor)
+	members, nextCursor, rl, err := o.client.ListTeamMembers(ctx, orgID, teamID, cursor)
 	if rl != nil {
 		ann.WithRateLimiting(rl)
 	}
@@ -113,11 +108,6 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 			return nil, "", ann, fmt.Errorf("baton-sentry: failed to create resource ID for user %s: %w", member.ID, err)
 		}
 		ret = append(ret, grant.NewGrant(resource, teamMembership, resourceId))
-	}
-
-	var nextCursor string
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
 	}
 
 	return ret, nextCursor, ann, nil
