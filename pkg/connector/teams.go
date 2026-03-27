@@ -45,36 +45,31 @@ func (o *teamBuilder) List(ctx context.Context, parentResourceID *v2.ResourceId,
 		return nil, "", nil, nil
 	}
 
+	ann := annotations.New()
 	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
 
 	orgID := parentResourceID.Resource
-	teams, res, ratelimitDescription, err := o.client.ListTeams(ctx, orgID, cursor)
-	if err != nil {
-		return nil, "", nil, err
+	teams, nextCursor, rl, err := o.client.ListTeams(ctx, orgID, cursor)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
 	}
-
-	var annotations annotations.Annotations
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
+	if err != nil {
+		return nil, "", ann, err
+	}
 
 	ret := make([]*v2.Resource, 0, len(teams))
 	for _, team := range teams {
 		resource, err := newTeamResource(team, parentResourceID)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, "", ann, err
 		}
-
 		ret = append(ret, resource)
 	}
 
-	var nextCursor string
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
-	}
-
-	return ret, nextCursor, annotations, nil
+	return ret, nextCursor, ann, nil
 }
 
 func (o *teamBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
@@ -90,6 +85,7 @@ func (o *teamBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *
 }
 
 func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+	ann := annotations.New()
 	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
@@ -97,33 +93,28 @@ func (o *teamBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken 
 
 	orgID := resource.ParentResourceId.Resource
 	teamID := strings.Split(resource.Id.Resource, "/")[1]
-	members, res, ratelimitDescription, err := o.client.ListTeamMembers(ctx, orgID, teamID, cursor)
-	if err != nil {
-		return nil, "", nil, err
+	members, nextCursor, rl, err := o.client.ListTeamMembers(ctx, orgID, teamID, cursor)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
 	}
-
-	var annotations annotations.Annotations
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
+	if err != nil {
+		return nil, "", ann, err
+	}
 
 	ret := make([]*v2.Grant, 0, len(members))
 	for _, member := range members {
 		resourceId, err := resourceSdk.NewResourceID(userResourceType, member.ID)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("baton-sentry: failed to create resource ID for user %s: %w", member.ID, err)
+			return nil, "", ann, fmt.Errorf("baton-sentry: failed to create resource ID for user %s: %w", member.ID, err)
 		}
-
 		ret = append(ret, grant.NewGrant(resource, teamMembership, resourceId))
 	}
 
-	var nextCursor string
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
-	}
-
-	return ret, nextCursor, annotations, nil
+	return ret, nextCursor, ann, nil
 }
 
 func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
+	ann := annotations.New()
 	split := strings.Split(entitlement.Resource.Id.Resource, "/")
 
 	orgId := split[0]
@@ -131,9 +122,12 @@ func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 	memberId := principal.Id.Resource
 	teamName := entitlement.Resource.DisplayName
 
-	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
+	member, rl, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to get organization member: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to get organization member: %w", err)
 	}
 
 	for _, name := range member.Teams {
@@ -142,27 +136,33 @@ func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		}
 	}
 
-	_, err = o.client.AddOrgMemberToTeam(ctx, orgId, memberId, teamId)
+	rl, err = o.client.AddOrgMemberToTeam(ctx, orgId, memberId, teamId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to add organization member to team: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to add organization member to team: %w", err)
 	}
 
-	return nil, nil
+	return ann, nil
 }
 
 func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
+	ann := annotations.New()
 	entitlement := grant.Entitlement
 	split := strings.Split(entitlement.Resource.Id.Resource, "/")
 
 	orgId := split[0]
 	teamId := split[1]
-
 	memberId := grant.Principal.Id.Resource
 	teamName := entitlement.Resource.DisplayName
 
-	member, _, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
+	member, rl, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to get organization member: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to get organization member: %w", err)
 	}
 
 	exists := false
@@ -177,12 +177,15 @@ func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 		return annotations.New(&v2.GrantAlreadyRevoked{}), nil
 	}
 
-	_, err = o.client.DeleteOrgMemberFromTeam(ctx, orgId, memberId, teamId)
+	rl, err = o.client.DeleteOrgMemberFromTeam(ctx, orgId, memberId, teamId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to delete organization member from team: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to delete organization member from team: %w", err)
 	}
 
-	return nil, nil
+	return ann, nil
 }
 
 func newTeamBuilder(client *client.Client) *teamBuilder {

@@ -47,35 +47,31 @@ func (o *projectBuilder) List(ctx context.Context, parentResourceID *v2.Resource
 		return nil, "", nil, nil
 	}
 
+	ann := annotations.New()
 	var cursor string
 	if pToken != nil {
 		cursor = pToken.Token
 	}
 
 	orgID := parentResourceID.Resource
-	projects, res, ratelimitDescription, err := o.client.ListProjects(ctx, orgID, cursor)
-	if err != nil {
-		return nil, "", nil, err
+	projects, nextCursor, rl, err := o.client.ListProjects(ctx, orgID, cursor)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
 	}
-
-	var annotations annotations.Annotations
-	annotations = *annotations.WithRateLimiting(ratelimitDescription)
+	if err != nil {
+		return nil, "", ann, err
+	}
 
 	ret := make([]*v2.Resource, 0, len(projects))
 	for _, project := range projects {
 		resource, err := newProjectResource(project, parentResourceID)
 		if err != nil {
-			return nil, "", nil, err
+			return nil, "", ann, err
 		}
 		ret = append(ret, resource)
 	}
 
-	nextCursor := ""
-	if client.HasNextPage(res) {
-		nextCursor = client.NextCursor(res)
-	}
-
-	return ret, nextCursor, annotations, nil
+	return ret, nextCursor, ann, nil
 }
 
 func (o *projectBuilder) Entitlements(_ context.Context, resource *v2.Resource, _ *pagination.Token) ([]*v2.Entitlement, string, annotations.Annotations, error) {
@@ -91,10 +87,15 @@ func (o *projectBuilder) Entitlements(_ context.Context, resource *v2.Resource, 
 }
 
 func (o *projectBuilder) Grants(ctx context.Context, resource *v2.Resource, pToken *pagination.Token) ([]*v2.Grant, string, annotations.Annotations, error) {
+	ann := annotations.New()
 	orgID := resource.ParentResourceId.Resource
-	project, _, err := o.client.GetProject(ctx, resource.ParentResourceId.Resource, resource.Id.Resource)
+
+	project, rl, err := o.client.GetProject(ctx, resource.ParentResourceId.Resource, resource.Id.Resource)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("baton-sentry: failed to get project: %w", err)
+		return nil, "", ann, fmt.Errorf("baton-sentry: failed to get project: %w", err)
 	}
 
 	ret := []*v2.Grant{}
@@ -102,7 +103,7 @@ func (o *projectBuilder) Grants(ctx context.Context, resource *v2.Resource, pTok
 		teamID := fmt.Sprintf("%s/%s", orgID, team.ID)
 		resourceId, err := resourceSdk.NewResourceID(teamResourceType, teamID)
 		if err != nil {
-			return nil, "", nil, fmt.Errorf("failed to create resource ID for team %s: %w", resource.ParentResourceId.Resource, err)
+			return nil, "", ann, fmt.Errorf("failed to create resource ID for team %s: %w", resource.ParentResourceId.Resource, err)
 		}
 
 		ret = append(ret, grant.NewGrant(
@@ -118,7 +119,7 @@ func (o *projectBuilder) Grants(ctx context.Context, resource *v2.Resource, pTok
 		))
 	}
 
-	return ret, "", nil, nil
+	return ret, "", ann, nil
 }
 
 func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, entitlement *v2.Entitlement) (annotations.Annotations, error) {
@@ -131,13 +132,17 @@ func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, enti
 		return nil, fmt.Errorf("baton-sentry: expected team resource ID to be in the format 'orgId/teamId', got %s", principal.Id.Resource)
 	}
 
+	ann := annotations.New()
 	orgId := split[0]
 	teamId := split[1]
 	projectId := entitlement.Resource.Id.Resource
 
-	project, _, err := o.client.GetProject(ctx, orgId, projectId)
+	project, rl, err := o.client.GetProject(ctx, orgId, projectId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to get project: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to get project: %w", err)
 	}
 
 	for _, team := range project.Teams {
@@ -146,12 +151,15 @@ func (o *projectBuilder) Grant(ctx context.Context, principal *v2.Resource, enti
 		}
 	}
 
-	_, err = o.client.AddTeamToProject(ctx, orgId, projectId, teamId)
+	rl, err = o.client.AddTeamToProject(ctx, orgId, projectId, teamId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to add team to project: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to add team to project: %w", err)
 	}
 
-	return nil, nil
+	return ann, nil
 }
 
 func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.Annotations, error) {
@@ -160,13 +168,17 @@ func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotatio
 	}
 
 	split := strings.Split(grant.Principal.Id.Resource, "/")
+	ann := annotations.New()
 	orgId := split[0]
 	teamId := split[1]
 	projectId := grant.Entitlement.Resource.Id.Resource
 
-	project, _, err := o.client.GetProject(ctx, orgId, projectId)
+	project, rl, err := o.client.GetProject(ctx, orgId, projectId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to get project: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to get project: %w", err)
 	}
 
 	exists := false
@@ -181,12 +193,15 @@ func (o *projectBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotatio
 		return annotations.New(&v2.GrantAlreadyRevoked{}), nil
 	}
 
-	_, err = o.client.DeleteTeamFromProject(ctx, orgId, projectId, teamId)
+	rl, err = o.client.DeleteTeamFromProject(ctx, orgId, projectId, teamId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("baton-sentry: failed to delete team from project: %w", err)
+		return ann, fmt.Errorf("baton-sentry: failed to delete team from project: %w", err)
 	}
 
-	return nil, nil
+	return ann, nil
 }
 
 func newProjectBuilder(client *client.Client) *projectBuilder {
