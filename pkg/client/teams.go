@@ -10,6 +10,21 @@ import (
 
 // docs: https://docs.sentry.io/api/teams/
 
+func (c *Client) GetTeam(ctx context.Context, orgID, teamID string) (*Team, *v2.RateLimitDescription, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(TeamUrl, orgID, teamID), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var target Team
+	_, rl, err := c.doRequest(req, &target) //nolint:bodyclose // body closed by doRequest
+	if err != nil {
+		return nil, rl, fmt.Errorf("failed to get team: %w", err)
+	}
+
+	return &target, rl, nil
+}
+
 func (c *Client) ListTeams(ctx context.Context, orgID, cursor string) ([]Team, string, *v2.RateLimitDescription, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationTeamsUrl, orgID), nil)
 	if err != nil {
