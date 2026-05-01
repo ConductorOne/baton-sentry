@@ -10,6 +10,8 @@ import (
 	"github.com/conductorone/baton-sentry/pkg/client"
 )
 
+const orgIDKey = "org_id"
+
 type Connector struct {
 	client *client.Client
 }
