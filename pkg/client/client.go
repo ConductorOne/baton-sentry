@@ -59,7 +59,7 @@ func New(ctx context.Context, apiToken string, baseURL string) (*Client, error) 
 		baseURL = DefaultBaseURL
 	}
 	if !strings.HasSuffix(baseURL, "/") {
-		baseURL = baseURL + "/"
+		baseURL += "/"
 	}
 
 	return &Client{
