@@ -11,7 +11,7 @@ import (
 // docs: https://docs.sentry.io/api/teams/
 
 func (c *Client) ListTeams(ctx context.Context, orgID, cursor string) ([]Team, string, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationTeamsUrl, orgID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.OrganizationTeamsURL(orgID), nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -36,7 +36,7 @@ func (c *Client) ListTeams(ctx context.Context, orgID, cursor string) ([]Team, s
 }
 
 func (c *Client) ListTeamMembers(ctx context.Context, orgID, teamID, cursor string) ([]TeamMember, string, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(TeamMembersUrl, orgID, teamID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.TeamMembersURL(orgID, teamID), nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -61,7 +61,7 @@ func (c *Client) ListTeamMembers(ctx context.Context, orgID, teamID, cursor stri
 }
 
 func (c *Client) AddOrgMemberToTeam(ctx context.Context, orgID, memberID, teamID string) (*v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(ProvisionTeamMemberUrl, orgID, memberID, teamID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.ProvisionTeamMemberURL(orgID, memberID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (c *Client) AddOrgMemberToTeam(ctx context.Context, orgID, memberID, teamID
 }
 
 func (c *Client) DeleteOrgMemberFromTeam(ctx context.Context, orgID, memberID, teamID string) (*v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(ProvisionTeamMemberUrl, orgID, memberID, teamID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.ProvisionTeamMemberURL(orgID, memberID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}

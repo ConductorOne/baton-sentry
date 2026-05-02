@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) ListProjects(ctx context.Context, orgID, cursor string) ([]Project, string, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationProjectsUrl, orgID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.OrganizationProjectsURL(orgID), nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -34,7 +34,7 @@ func (c *Client) ListProjects(ctx context.Context, orgID, cursor string) ([]Proj
 }
 
 func (c *Client) ListTeamProjects(ctx context.Context, orgID, teamID, cursor string) ([]Project, string, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(TeamProjectsUrl, orgID, teamID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.TeamProjectsURL(orgID, teamID), nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -61,7 +61,7 @@ func (c *Client) ListTeamProjects(ctx context.Context, orgID, teamID, cursor str
 // https://docs.sentry.io/api/projects/list-a-projects-organization-members/
 // Returns a list of active organization members that belong to any team assigned to the project.
 func (c *Client) ListProjectMembers(ctx context.Context, orgID, projectID, cursor string) ([]ProjectMember, string, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(ProjectMembersUrl, orgID, projectID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.ProjectMembersURL(orgID, projectID), nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -86,7 +86,7 @@ func (c *Client) ListProjectMembers(ctx context.Context, orgID, projectID, curso
 }
 
 func (c *Client) AddTeamToProject(ctx context.Context, orgID, projectID, teamID string) (*v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(ProvisionProjectTeamUrl, orgID, projectID, teamID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.ProvisionProjectTeamURL(orgID, projectID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (c *Client) AddTeamToProject(ctx context.Context, orgID, projectID, teamID 
 }
 
 func (c *Client) DeleteTeamFromProject(ctx context.Context, orgID, projectID, teamID string) (*v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(ProvisionProjectTeamUrl, orgID, projectID, teamID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.ProvisionProjectTeamURL(orgID, projectID, teamID), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (c *Client) DeleteTeamFromProject(ctx context.Context, orgID, projectID, te
 }
 
 func (c *Client) GetProject(ctx context.Context, orgID, projectID string) (*DetailedProject, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(ProjectsUrl, orgID, projectID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.ProjectsURL(orgID, projectID), nil)
 	if err != nil {
 		return nil, nil, err
 	}

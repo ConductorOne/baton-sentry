@@ -13,7 +13,7 @@ import (
 // docs: https://docs.sentry.io/api/organizations/
 
 func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organization, string, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, OrganizationsUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.OrganizationsURL(), nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -39,7 +39,7 @@ func (c *Client) ListOrganizations(ctx context.Context, cursor string) ([]Organi
 
 // https://docs.sentry.io/api/guides/teams-tutorial/#list-an-organizations-teams-1
 func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor string) ([]OrganizationMember, string, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationMembersUrl, orgID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.OrganizationMembersURL(orgID), nil)
 	if err != nil {
 		return nil, "", nil, err
 	}
@@ -64,7 +64,7 @@ func (c *Client) ListOrganizationMembers(ctx context.Context, orgID, cursor stri
 }
 
 func (c *Client) GetOrganizationMember(ctx context.Context, orgID, memberID string) (*DetailedMember, *v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf(OrganizationOneMemberUrl, orgID, memberID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.OrganizationOneMemberURL(orgID, memberID), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -84,7 +84,7 @@ func (c *Client) AddMemberToOrganization(ctx context.Context, orgID string, memb
 		return nil, nil, fmt.Errorf("failed to marshal member: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf(OrganizationMembersUrl, orgID), bytes.NewReader(v))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.OrganizationMembersURL(orgID), bytes.NewReader(v))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,7 +109,7 @@ func (c *Client) UpdateOrganizationMemberRole(ctx context.Context, orgID, member
 		return nil, nil, fmt.Errorf("failed to marshal update member role body: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, fmt.Sprintf(OrganizationOneMemberUrl, orgID, memberID), bytes.NewReader(v))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.OrganizationOneMemberURL(orgID, memberID), bytes.NewReader(v))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -125,7 +125,7 @@ func (c *Client) UpdateOrganizationMemberRole(ctx context.Context, orgID, member
 }
 
 func (c *Client) DeleteMemberFromOrganization(ctx context.Context, orgID, userID string) (*v2.RateLimitDescription, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf(OrganizationOneMemberUrl, orgID, userID), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.OrganizationOneMemberURL(orgID, userID), nil)
 	if err != nil {
 		return nil, err
 	}

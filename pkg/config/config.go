@@ -13,8 +13,14 @@ var (
 		field.WithIsSecret(true),
 		field.WithRequired(true),
 	)
+	BaseURL = field.StringField(
+		"base-url",
+		field.WithDescription("Override the Sentry API URL (for testing or self-hosted)"),
+		field.WithHidden(true),
+		field.WithExportTarget(field.ExportTargetCLIOnly),
+	)
 
-	ConfigurationFields = []field.SchemaField{ApiToken}
+	ConfigurationFields = []field.SchemaField{ApiToken, BaseURL}
 
 	// FieldRelationships defines relationships between the ConfigurationFields that can be automatically validated.
 	// For example, a username and password can be required together, or an access token can be

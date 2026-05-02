@@ -10,6 +10,8 @@ import (
 	"github.com/conductorone/baton-sentry/pkg/client"
 )
 
+const orgIDKey = "org_id"
+
 type Connector struct {
 	client *client.Client
 }
@@ -79,8 +81,8 @@ func (d *Connector) Validate(_ context.Context) (annotations.Annotations, error)
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context, apiToken string) (*Connector, error) {
-	client, err := client.New(ctx, apiToken)
+func New(ctx context.Context, apiToken string, baseURL string) (*Connector, error) {
+	client, err := client.New(ctx, apiToken, baseURL)
 	if err != nil {
 		return nil, err
 	}

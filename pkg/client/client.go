@@ -4,11 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/uhttp"
 	"github.com/grpc-ecosystem/go-grpc-middleware/logging/zap/ctxzap"
 )
+
+const DefaultBaseURL = "https://sentry.io/api/0/"
 
 type sentryError struct {
 	Detail json.RawMessage `json:"detail"`
@@ -43,16 +46,25 @@ func (e *sentryError) Message() string {
 
 type Client struct {
 	*uhttp.BaseHttpClient
+	baseURL string
 }
 
-func New(ctx context.Context, apiToken string) (*Client, error) {
+func New(ctx context.Context, apiToken string, baseURL string) (*Client, error) {
 	httpClient, err := uhttp.NewBearerAuth(apiToken).GetClient(ctx, uhttp.WithLogger(true, ctxzap.Extract(ctx)))
 	if err != nil {
 		return nil, err
 	}
 
+	if baseURL == "" {
+		baseURL = DefaultBaseURL
+	}
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
+	}
+
 	return &Client{
 		BaseHttpClient: uhttp.NewBaseHttpClient(httpClient),
+		baseURL:        baseURL,
 	}, nil
 }
 

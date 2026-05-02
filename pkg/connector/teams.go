@@ -26,7 +26,7 @@ func (o *teamBuilder) ResourceType(ctx context.Context) *v2.ResourceType {
 
 func newTeamResource(team client.Team, parentResourceID *v2.ResourceId) (*v2.Resource, error) {
 	profile := map[string]interface{}{
-		"org_id": parentResourceID.Resource,
+		orgIDKey: parentResourceID.Resource,
 	}
 	return resourceSdk.NewGroupResource(
 		team.Name,
