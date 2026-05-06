@@ -14,13 +14,13 @@ const orgIDKey = "org_id"
 
 type Connector struct {
 	client *client.Client
-	orgIds []string
+	orgIDs []string
 }
 
 // ResourceSyncers returns a ResourceSyncer for each resource type that should be synced from the upstream service.
 func (d *Connector) ResourceSyncers(_ context.Context) []connectorbuilder.ResourceSyncer {
 	return []connectorbuilder.ResourceSyncer{
-		newOrganizationBuilder(d.client, d.orgIds),
+		newOrganizationBuilder(d.client, d.orgIDs),
 		newUserBuilder(d.client),
 		newTeamBuilder(d.client),
 		newProjectBuilder(d.client),
@@ -82,13 +82,13 @@ func (d *Connector) Validate(_ context.Context) (annotations.Annotations, error)
 }
 
 // New returns a new instance of the connector.
-func New(ctx context.Context, apiToken string, baseURL string, orgIds []string) (*Connector, error) {
+func New(ctx context.Context, apiToken string, baseURL string, orgIDs []string) (*Connector, error) {
 	client, err := client.New(ctx, apiToken, baseURL)
 	if err != nil {
 		return nil, err
 	}
 	return &Connector{
 		client: client,
-		orgIds: orgIds,
+		orgIDs: orgIDs,
 	}, nil
 }

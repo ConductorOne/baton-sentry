@@ -37,7 +37,7 @@ const defaultOrgRole = "member"
 
 type organizationBuilder struct {
 	client *client.Client
-	orgIds map[string]struct{}
+	orgIDs map[string]struct{}
 }
 
 func (o *organizationBuilder) ResourceType(_ context.Context) *v2.ResourceType {
@@ -254,21 +254,21 @@ func (o *organizationBuilder) Revoke(ctx context.Context, gnt *v2.Grant) (annota
 }
 
 func (o *organizationBuilder) matchesFilter(org client.Organization) bool {
-	if len(o.orgIds) == 0 {
+	if len(o.orgIDs) == 0 {
 		return true
 	}
-	_, byID := o.orgIds[org.ID]
-	_, bySlug := o.orgIds[org.Slug]
+	_, byID := o.orgIDs[org.ID]
+	_, bySlug := o.orgIDs[org.Slug]
 	return byID || bySlug
 }
 
-func newOrganizationBuilder(client *client.Client, orgIds []string) *organizationBuilder {
-	filter := make(map[string]struct{}, len(orgIds))
-	for _, id := range orgIds {
+func newOrganizationBuilder(client *client.Client, orgIDs []string) *organizationBuilder {
+	filter := make(map[string]struct{}, len(orgIDs))
+	for _, id := range orgIDs {
 		filter[id] = struct{}{}
 	}
 	return &organizationBuilder{
 		client: client,
-		orgIds: filter,
+		orgIDs: filter,
 	}
 }
