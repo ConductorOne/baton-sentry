@@ -37,6 +37,7 @@ const defaultOrgRole = "member"
 
 type organizationBuilder struct {
 	client *client.Client
+	orgIds map[string]struct{}
 }
 
 func (o *organizationBuilder) ResourceType(_ context.Context) *v2.ResourceType {
@@ -78,6 +79,9 @@ func (o *organizationBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken
 
 	ret := make([]*v2.Resource, 0, len(orgs))
 	for _, org := range orgs {
+		if !o.matchesFilter(org) {
+			continue
+		}
 		resource, err := newOrgResource(org)
 		if err != nil {
 			return nil, "", ann, fmt.Errorf("baton-sentry: failed to create resource for organization %s: %w", org.ID, err)
@@ -249,8 +253,22 @@ func (o *organizationBuilder) Revoke(ctx context.Context, gnt *v2.Grant) (annota
 	return ann, nil
 }
 
-func newOrganizationBuilder(client *client.Client) *organizationBuilder {
+func (o *organizationBuilder) matchesFilter(org client.Organization) bool {
+	if len(o.orgIds) == 0 {
+		return true
+	}
+	_, byID := o.orgIds[org.ID]
+	_, bySlug := o.orgIds[org.Slug]
+	return byID || bySlug
+}
+
+func newOrganizationBuilder(client *client.Client, orgIds []string) *organizationBuilder {
+	filter := make(map[string]struct{}, len(orgIds))
+	for _, id := range orgIds {
+		filter[id] = struct{}{}
+	}
 	return &organizationBuilder{
 		client: client,
+		orgIds: filter,
 	}
 }

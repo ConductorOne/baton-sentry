@@ -19,8 +19,13 @@ var (
 		field.WithHidden(true),
 		field.WithExportTarget(field.ExportTargetCLIOnly),
 	)
+	OrgIds = field.StringSliceField(
+		"org-ids",
+		field.WithDisplayName("Organization IDs"),
+		field.WithDescription("Limit syncing to the specified Sentry organization IDs or slugs. If empty, all organizations are synced."),
+	)
 
-	ConfigurationFields = []field.SchemaField{ApiToken, BaseURL}
+	ConfigurationFields = []field.SchemaField{ApiToken, BaseURL, OrgIds}
 
 	// FieldRelationships defines relationships between the ConfigurationFields that can be automatically validated.
 	// For example, a username and password can be required together, or an access token can be
