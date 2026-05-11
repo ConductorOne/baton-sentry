@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -265,7 +266,9 @@ func (o *organizationBuilder) matchesFilter(org client.Organization) bool {
 func newOrganizationBuilder(client *client.Client, orgIDs []string) *organizationBuilder {
 	filter := make(map[string]struct{}, len(orgIDs))
 	for _, id := range orgIDs {
-		filter[id] = struct{}{}
+		if trimmed := strings.TrimSpace(id); trimmed != "" {
+			filter[trimmed] = struct{}{}
+		}
 	}
 	return &organizationBuilder{
 		client: client,
