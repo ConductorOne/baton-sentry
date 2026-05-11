@@ -14,6 +14,10 @@ While developing the connector, please fill out this form. This information is n
 - Teams (grant/revoke team membership)
 - Projects (grant/revoke team assignment to projects)
 
+## Optional configuration
+
+- **Organization IDs** (`--org-ids` / `BATON_ORG_IDS`): A comma-separated list of Sentry organization IDs or slugs to sync. When set, only the specified organizations (and their users, teams, and projects) are synced. Leave unset to sync all organizations. This is useful when a Sentry account belongs to multiple organizations and you want to avoid duplicate user records caused by users having different internal IDs per org.
+
 ## Connector credentials 
 
 1. What credentials or information are needed to set up the connector? (For example, API key, client ID and secret, domain, etc.)
