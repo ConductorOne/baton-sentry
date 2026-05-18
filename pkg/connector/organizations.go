@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	v2 "github.com/conductorone/baton-sdk/pb/c1/connector/v2"
 	"github.com/conductorone/baton-sdk/pkg/annotations"
@@ -37,6 +38,7 @@ const defaultOrgRole = "member"
 
 type organizationBuilder struct {
 	client *client.Client
+	orgIDs map[string]struct{}
 }
 
 func (o *organizationBuilder) ResourceType(_ context.Context) *v2.ResourceType {
@@ -78,6 +80,9 @@ func (o *organizationBuilder) List(ctx context.Context, _ *v2.ResourceId, pToken
 
 	ret := make([]*v2.Resource, 0, len(orgs))
 	for _, org := range orgs {
+		if !o.matchesFilter(org) {
+			continue
+		}
 		resource, err := newOrgResource(org)
 		if err != nil {
 			return nil, "", ann, fmt.Errorf("baton-sentry: failed to create resource for organization %s: %w", org.ID, err)
@@ -249,8 +254,24 @@ func (o *organizationBuilder) Revoke(ctx context.Context, gnt *v2.Grant) (annota
 	return ann, nil
 }
 
-func newOrganizationBuilder(client *client.Client) *organizationBuilder {
+func (o *organizationBuilder) matchesFilter(org client.Organization) bool {
+	if len(o.orgIDs) == 0 {
+		return true
+	}
+	_, byID := o.orgIDs[org.ID]
+	_, bySlug := o.orgIDs[org.Slug]
+	return byID || bySlug
+}
+
+func newOrganizationBuilder(client *client.Client, orgIDs []string) *organizationBuilder {
+	filter := make(map[string]struct{}, len(orgIDs))
+	for _, id := range orgIDs {
+		if trimmed := strings.TrimSpace(id); trimmed != "" {
+			filter[trimmed] = struct{}{}
+		}
+	}
 	return &organizationBuilder{
 		client: client,
+		orgIDs: filter,
 	}
 }

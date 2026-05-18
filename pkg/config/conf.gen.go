@@ -4,8 +4,9 @@ package config
 import "reflect" 
 
 type Sentry struct {
-	ApiToken string `mapstructure:"api-token"`
-	BaseUrl  string `mapstructure:"base-url"`
+	ApiToken string   `mapstructure:"api-token"`
+	BaseUrl  string   `mapstructure:"base-url"`
+	OrgIDs   []string `mapstructure:"org-ids"`
 }
 
 func (c* Sentry) findFieldByTag(tagValue string) (any, bool) {
