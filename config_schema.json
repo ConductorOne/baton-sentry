@@ -103,6 +103,12 @@
           "isRequired": true
         }
       }
+    },
+    {
+      "name": "org-ids",
+      "displayName": "Organization IDs",
+      "description": "Limit syncing to the specified Sentry organization IDs or slugs. If empty, all organizations are synced.",
+      "stringSliceField": {}
     }
   ],
   "displayName": "Sentry"
