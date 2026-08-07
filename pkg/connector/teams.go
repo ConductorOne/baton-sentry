@@ -33,9 +33,8 @@ func newTeamResource(team client.Team, parentResourceID *v2.ResourceId) (*v2.Res
 		teamResourceType,
 		// <orgID>/<teamID>
 		fmt.Sprintf("%s/%s", parentResourceID.Resource, team.ID),
-		[]resourceSdk.GroupTraitOption{
-			resourceSdk.WithGroupProfile(profile),
-		},
+		[]resourceSdk.GroupTraitOption{},
+		resourceSdk.WithResourceProfile(profile),
 		resourceSdk.WithParentResourceID(parentResourceID),
 	)
 }

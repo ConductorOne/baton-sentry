@@ -52,9 +52,8 @@ func newOrgResource(org client.Organization) (*v2.Resource, error) {
 	return resourceSdk.NewGroupResource(
 		org.Name, organizationResourceType,
 		org.ID,
-		[]resourceSdk.GroupTraitOption{
-			resourceSdk.WithGroupProfile(profile),
-		},
+		[]resourceSdk.GroupTraitOption{},
+		resourceSdk.WithResourceProfile(profile),
 		resourceSdk.WithAnnotation(
 			&v2.ChildResourceType{ResourceTypeId: userResourceType.Id},
 			&v2.ChildResourceType{ResourceTypeId: teamResourceType.Id},
