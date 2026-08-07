@@ -33,9 +33,9 @@ func newUserResource(member client.OrganizationMember, parentResourceID *v2.Reso
 		member.ID,
 		[]resourceSdk.UserTraitOption{
 			resourceSdk.WithEmail(member.Email, true),
-			resourceSdk.WithUserProfile(profile),
-			resourceSdk.WithCreatedAt(member.DateCreated),
 		},
+		resourceSdk.WithResourceProfile(profile),
+		resourceSdk.WithResourceCreatedAt(member.DateCreated),
 		resourceSdk.WithParentResourceID(parentResourceID),
 	)
 }
