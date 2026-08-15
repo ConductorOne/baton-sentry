@@ -119,7 +119,14 @@ func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 	orgId := split[0]
 	teamId := split[1]
 	memberId := principal.Id.Resource
-	teamName := entitlement.Resource.DisplayName
+
+	team, rl, err := o.client.GetTeam(ctx, orgId, teamId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
+	if err != nil {
+		return ann, fmt.Errorf("baton-sentry: failed to get team: %w", err)
+	}
 
 	member, rl, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
 	if rl != nil {
@@ -129,8 +136,8 @@ func (o *teamBuilder) Grant(ctx context.Context, principal *v2.Resource, entitle
 		return ann, fmt.Errorf("baton-sentry: failed to get organization member: %w", err)
 	}
 
-	for _, name := range member.Teams {
-		if name == teamName {
+	for _, slug := range member.Teams {
+		if slug == team.Slug {
 			return annotations.New(&v2.GrantAlreadyExists{}), nil
 		}
 	}
@@ -154,7 +161,14 @@ func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 	orgId := split[0]
 	teamId := split[1]
 	memberId := grant.Principal.Id.Resource
-	teamName := entitlement.Resource.DisplayName
+
+	team, rl, err := o.client.GetTeam(ctx, orgId, teamId)
+	if rl != nil {
+		ann.WithRateLimiting(rl)
+	}
+	if err != nil {
+		return ann, fmt.Errorf("baton-sentry: failed to get team: %w", err)
+	}
 
 	member, rl, err := o.client.GetOrganizationMember(ctx, orgId, memberId)
 	if rl != nil {
@@ -165,8 +179,8 @@ func (o *teamBuilder) Revoke(ctx context.Context, grant *v2.Grant) (annotations.
 	}
 
 	exists := false
-	for _, name := range member.Teams {
-		if name == teamName {
+	for _, slug := range member.Teams {
+		if slug == team.Slug {
 			exists = true
 			break
 		}
