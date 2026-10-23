@@ -10,6 +10,10 @@ const (
 	organizationTeamsPath     = "organizations/%s/teams/"
 	organizationProjectsPath  = "organizations/%s/projects/"
 
+	// https://docs.sentry.io/api/teams/retrieve-a-team/
+	//	teams/{organization_id_or_slug}/{team_id_or_slug}/
+	TeamUrl = BaseUrl + "teams/%s/%s/"
+
 	//https://docs.sentry.io/api/teams/list-a-teams-members/
 	//	teams/{organization_id_or_slug}/{team_id_or_slug}/members/
 	teamMembersPath = "teams/%s/%s/members/"
